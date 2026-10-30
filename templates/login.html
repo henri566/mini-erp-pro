@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion - Mini-ERP Pro</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Styles et Animations Avancées -->
+    <style>
+        *, *::before, *::after {
+            transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        body {
+            color: #f8fafc;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+            background-color: #030712;
+            position: relative;
+        }
+
+        /* --- FOND VIVANT : BLOBS LUMINEUX (Cyan, Violet, Bleu) --- */
+        .bg-blobs-container {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            overflow: hidden; z-index: -2; pointer-events: none;
+            background: #030712;
+        }
+        .blob {
+            position: absolute; border-radius: 50%; filter: blur(90px); opacity: 0.55;
+            animation: floatBlob 20s infinite alternate ease-in-out;
+        }
+        .blob-cyan { top: -10%; left: -10%; width: 50vw; height: 50vw; background: rgba(6, 182, 212, 0.5); animation-duration: 22s; }
+        .blob-violet { bottom: -15%; right: -10%; width: 55vw; height: 55vw; background: rgba(168, 85, 247, 0.45); animation-duration: 28s; animation-delay: -5s; }
+        .blob-blue { top: 30%; left: 30%; width: 40vw; height: 40vw; background: rgba(59, 130, 246, 0.4); animation-duration: 25s; animation-delay: -10s; }
+
+        @keyframes floatBlob {
+            0% { transform: translate(0px, 0px) scale(1); }
+            50% { transform: translate(50px, 70px) scale(1.1); }
+            100% { transform: translate(-40px, 50px) scale(0.9); }
+        }
+
+        /* --- PARTICULES / ÉTOILES DISCRÈTES EN ARRIÈRE-PLAN --- */
+        .stars-container {
+            position: fixed; inset: 0; z-index: -1; pointer-events: none;
+            background-image: 
+                radial-gradient(2px 2px at 20px 30px, #ffffff, rgba(0,0,0,0)),
+                radial-gradient(2px 2px at 40px 70px, rgba(56, 189, 248, 0.8), rgba(0,0,0,0)),
+                radial-gradient(1px 1px at 90px 40px, #ffffff, rgba(0,0,0,0)),
+                radial-gradient(2px 2px at 150px 120px, rgba(168, 85, 247, 0.8), rgba(0,0,0,0)),
+                radial-gradient(2px 2px at 200px 200px, #ffffff, rgba(0,0,0,0));
+            background-repeat: repeat;
+            background-size: 250px 250px;
+            opacity: 0.4;
+            animation: twinkle 6s infinite alternate ease-in-out;
+        }
+
+        @keyframes twinkle {
+            0% { opacity: 0.3; }
+            100% { opacity: 0.6; }
+        }
+
+        /* --- CARTE FLOTTANTE AVEC EFFET VERRE & ADAPTATION MOBILE (90%) --- */
+        .floating-glass-card {
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(20px) saturate(140%);
+            -webkit-backdrop-filter: blur(20px) saturate(140%);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-top: 1px solid rgba(255, 255, 255, 0.35);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            width: 90%;
+            max-width: 440px;
+            animation: cardFloat 4s ease-in-out infinite, fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes cardFloat {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-6px); }
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(25px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- CLASSES D'APPARITION ÉCHELONNÉE (STAGGER) --- */
+        .animate-stagger-1 { opacity: 0; animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.1s forwards; }
+        .animate-stagger-2 { opacity: 0; animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards; }
+        .animate-stagger-3 { opacity: 0; animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards; }
+        .animate-stagger-4 { opacity: 0; animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.4s forwards; }
+
+        /* --- TREMBLEMENT EN CAS D'ERREUR --- */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0) translateY(0); }
+            20%, 60% { transform: translateX(-8px) translateY(0); }
+            40%, 80% { transform: translateX(8px) translateY(0); }
+        }
+        .shake-card {
+            animation: shake 0.4s ease-in-out, cardFloat 4s ease-in-out infinite;
+        }
+
+        /* --- ANNEAU LUMINEUX AUTOUR DE L'ICÔNE --- */
+        .glowing-icon-wrapper {
+            position: relative;
+            width: 70px;
+            height: 70px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .glowing-icon-wrapper::before {
+            content: '';
+            position: absolute;
+            inset: -3px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, #06b6d4, #a855f7, #3b82f6);
+            z-index: -1;
+            filter: blur(6px);
+            opacity: 0.8;
+            animation: rotateRing 4s linear infinite;
+        }
+        @keyframes rotateRing {
+            0% { filter: blur(6px) hue-rotate(0deg); }
+            100% { filter: blur(6px) hue-rotate(360deg); }
+        }
+
+        /* --- CHAMPS DE SAISIE --- */
+        .floating-group { position: relative; }
+        .floating-input {
+            width: 100%; 
+            padding: 1.1rem 2.75rem 0.4rem 2.75rem;
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            border-radius: 0.75rem; 
+            color: #f8fafc; 
+            font-size: 0.875rem; 
+            outline: none;
+            transition: all 0.3s ease;
+        }
+        .floating-input:focus, .floating-input:not(:placeholder-shown) {
+            padding-top: 1.35rem; 
+            padding-bottom: 0.35rem;
+            border-color: #38bdf8; 
+            box-shadow: 0 0 22px rgba(56, 189, 248, 0.6);
+            background: rgba(30, 41, 59, 0.85);
+        }
+        .floating-label {
+            position: absolute; 
+            left: 2.75rem; 
+            top: 0.85rem; 
+            color: #94a3b8; 
+            font-size: 0.875rem; 
+            pointer-events: none;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .floating-input:focus ~ .floating-label,
+        .floating-input:not(:placeholder-shown) ~ .floating-label {
+            transform: translateY(-0.55rem) scale(0.75); 
+            color: #38bdf8; 
+            font-weight: 600;
+            left: 1rem;
+        }
+        
+        .input-icon {
+            position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%);
+            color: #38bdf8; pointer-events: none; width: 1.25rem; height: 1.25rem; display: flex; align-items: center; justify-content: center;
+        }
+        .input-icon-right {
+            position: absolute; right: 0.85rem; top: 50%; transform: translateY(-50%);
+            color: #94a3b8; cursor: pointer; width: 1.25rem; height: 1.25rem; display: flex; align-items: center; justify-content: center; transition: color 0.2s;
+        }
+        .input-icon-right:hover { color: #38bdf8; }
+
+        /* --- BOUTON LUMINEUX --- */
+        .btn-glow-sky {
+            background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+            box-shadow: 0 4px 15px rgba(56, 189, 248, 0.4);
+            transition: all 0.3s ease;
+        }
+        .btn-glow-sky:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(56, 189, 248, 0.8);
+        }
+
+        /* --- MODE CLAIR --- */
+        body.light-mode {
+            background-color: #f0fdf4 !important;
+            color: #0f172a !important;
+        }
+        body.light-mode .bg-blobs-container {
+            background: linear-gradient(135deg, #f0fdf4 0%, #f0f9ff 50%, #e0f2fe 100%) !important;
+        }
+        body.light-mode .floating-glass-card {
+            background: rgba(255, 255, 255, 0.85) !important;
+            border: 1px solid rgba(14, 165, 233, 0.25) !important;
+            border-top: 1px solid rgba(255, 255, 255, 1) !important;
+            box-shadow: 0 20px 50px rgba(14, 165, 233, 0.15) !important;
+            color: #0f172a !important;
+        }
+        body.light-mode .floating-input {
+            background: #ffffff !important;
+            border-color: rgba(14, 165, 233, 0.35) !important;
+            color: #0f172a !important;
+        }
+        body.light-mode .floating-label { color: #475569 !important; }
+        body.light-mode .floating-input:focus ~ .floating-label,
+        body.light-mode .floating-input:not(:placeholder-shown) ~ .floating-label { color: #0284c7 !important; }
+        body.light-mode .text-slate-100 { color: #0f172a !important; }
+        body.light-mode .text-slate-400, body.light-mode .text-slate-300 { color: #334155 !important; }
+    </style>
+</head>
+<body class="font-sans antialiased">
+
+    <!-- BARRE SUPÉRIEURE : THÈME & LANGUE -->
+    <div class="absolute top-6 right-6 z-50 flex items-center gap-3">
+        <!-- Sélecteur de Langue (FR / EN) -->
+        <select id="lang-select" onchange="changerLangue(this.value)" class="floating-glass-card bg-slate-900/60 text-slate-200 border border-white/10 px-3 py-2 rounded-xl text-xs font-medium focus:outline-none cursor-pointer shadow-none animate-none">
+            <option value="fr" class="bg-slate-900 text-white">FR</option>
+            <option value="en" class="bg-slate-900 text-white">EN</option>
+        </select>
+
+        <!-- Bouton Thème Sombre / Clair -->
+        <button id="theme-toggle" class="p-2.5 rounded-xl floating-glass-card bg-slate-900/60 hover:bg-sky-500/20 transition text-xs flex items-center gap-2 cursor-pointer border border-white/10 text-slate-200 shadow-none animate-none">
+            <i data-lucide="moon" class="w-4 h-4 text-sky-400" id="theme-icon"></i>
+            <span id="theme-text">Sombre</span>
+        </button>
+    </div>
+
+    <!-- FOND VIVANT & ÉTOILES -->
+    <div class="bg-blobs-container">
+        <div class="blob blob-cyan"></div>
+        <div class="blob blob-violet"></div>
+        <div class="blob blob-blue"></div>
+    </div>
+    <div class="stars-container"></div>
+
+    <!-- CONTENEUR PRINCIPAL CENTRÉ -->
+    <div class="flex flex-col items-center justify-center min-h-screen w-full py-12">
+        
+        <!-- CARTE DE CONNEXION FLOTTANTE & EFFET VERRE -->
+        <div id="login-card" class="floating-glass-card p-8 rounded-3xl space-y-6 shadow-2xl relative {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}{% for cat, msg in messages %}{% if cat == 'error' or cat == 'danger' %}shake-card{% endif %}{% endfor %}{% endif %}{% endwith %}">
+            
+            <!-- En-tête Logo avec Anneau Lumineux et Slogan (Stagger 1) -->
+            <div class="text-center space-y-3 animate-stagger-1">
+                <div class="glowing-icon-wrapper rounded-2xl bg-slate-900/80 text-sky-400 border border-white/20 shadow-inner flex items-center justify-center">
+                    <i data-lucide="zap" class="w-8 h-8 text-sky-400"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold text-slate-100 tracking-wide">Mini-ERP Pro</h1>
+                    <p id="slogan-text" class="text-xs text-sky-400 font-medium mt-1">Gérez votre entreprise simplement</p>
+                </div>
+            </div>
+
+            <!-- Messages flash d'erreur ou succès -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
+                <div class="space-y-2 animate-stagger-2">
+                  {% for category, message in messages %}
+                    <div class="p-3 rounded-xl text-xs flex items-center gap-2 border {% if category == 'error' or category == 'danger' %}bg-rose-500/15 border-rose-500/30 text-rose-300{% else %}bg-emerald-500/15 border-emerald-500/30 text-emerald-300{% endif %}">
+                        <i data-lucide="{% if category == 'error' or category == 'danger' %}alert-circle{% else %}check-circle-2{% endif %}" class="w-4 h-4 flex-shrink-0"></i>
+                        <span>{{ message }}</span>
+                    </div>
+                  {% endfor %}
+                </div>
+              {% endif %}
+            {% endwith %}
+
+            <!-- Formulaire de connexion sécurisé avec Flask-WTF (CSRF) -->
+            <form id="login-form" action="{{ url_for('login') }}" method="POST" class="space-y-4">
+                {{ form.hidden_tag() }}
+                
+                <!-- Champ Utilisateur (Stagger 2) -->
+                <div class="floating-group animate-stagger-2">
+                    <span class="input-icon">
+                        <i data-lucide="user" class="w-5 h-5"></i>
+                    </span>
+                    {{ form.username(placeholder=" ", class="floating-input") }}
+                    <label id="label-user" class="floating-label">Nom d'utilisateur</label>
+                </div>
+
+                <!-- Champ Mot de passe avec bouton Œil (Stagger 3) -->
+                <div class="floating-group animate-stagger-3">
+                    <span class="input-icon">
+                        <i data-lucide="lock" class="w-5 h-5"></i>
+                    </span>
+                    {{ form.password(placeholder=" ", id="password-input", class="floating-input") }}
+                    <label id="label-pwd" class="floating-label">Mot de passe</label>
+                    <span class="input-icon-right" onclick="togglePasswordVisibility()">
+                        <i data-lucide="eye" id="toggle-eye" class="w-5 h-5"></i>
+                    </span>
+                </div>
+
+                <!-- Avertissement Caps Lock -->
+                <div id="capslock-warning" class="hidden text-[11px] text-amber-400 flex items-center gap-1.5 px-1">
+                    <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
+                    <span id="caps-text">Attention : le verrouillage des majuscules est activé.</span>
+                </div>
+
+                <!-- Options : Souvenir de moi & Mot de passe oublié (Stagger 4) -->
+                <div class="flex items-center justify-between text-xs text-slate-300 pt-1 animate-stagger-4">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" name="remember" class="w-4 h-4 rounded border-slate-700 bg-slate-900 text-sky-500 focus:ring-sky-400">
+                        <span id="remember-text">Se souvenir de moi</span>
+                    </label>
+                    <a href="#" id="forgot-text" onclick="alert('Pour la démo, contactez l\'administrateur.')" class="text-sky-400 hover:underline">Mot de passe oublié ?</a>
+                </div>
+
+                <!-- Bouton de connexion avec animation de validation (Stagger 4) -->
+                <div class="animate-stagger-4 pt-1">
+                    <button type="submit" id="submit-btn" class="w-full btn-glow-sky text-white font-medium py-3.5 rounded-xl text-sm transition flex items-center justify-center gap-2">
+                        <span id="btn-icon-wrapper"><i data-lucide="log-in" class="w-4 h-4"></i></span>
+                        <span id="btn-text">Se connecter</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Pied de page discret -->
+        <footer class="mt-8 text-center text-xs text-slate-500">
+            © 2026 Mini-ERP Pro, version 1.0
+        </footer>
+    </div>
+
+    <!-- Scripts interactifs (Thème, Langue, Œil, Validation) -->
+    <script>
+        lucide.createIcons();
+
+        // 1. Gestion du Thème Sombre / Clair synchro
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeText = document.getElementById('theme-text');
+        const themeIcon = document.getElementById('theme-icon');
+        const body = document.body;
+
+        if (localStorage.getItem('theme') === 'light') {
+            body.classList.add('light-mode');
+            themeText.textContent = 'Clair';
+            themeIcon.setAttribute('data-lucide', 'sun');
+            lucide.createIcons();
+        }
+
+        themeToggle.addEventListener('click', () => {
+            body.classList.toggle('light-mode');
+            if (body.classList.contains('light-mode')) {
+                themeText.textContent = 'Clair';
+                themeIcon.setAttribute('data-lucide', 'sun');
+                localStorage.setItem('theme', 'light');
+            } else {
+                themeText.textContent = 'Sombre';
+                themeIcon.setAttribute('data-lucide', 'moon');
+                localStorage.setItem('theme', 'dark');
+            }
+            lucide.createIcons();
+        });
+
+        // 2. Traduction simple FR / EN pour la démo
+        function changerLangue(lang) {
+            const slogan = document.getElementById('slogan-text');
+            const labelUser = document.getElementById('label-user');
+            const labelPwd = document.getElementById('label-pwd');
+            const rememberText = document.getElementById('remember-text');
+            const forgotText = document.getElementById('forgot-text');
+            const btnText = document.getElementById('btn-text');
+
+            if (lang === 'en') {
+                slogan.textContent = 'Manage your business simply';
+                labelUser.textContent = 'Username';
+                labelPwd.textContent = 'Password';
+                rememberText.textContent = 'Remember me';
+                forgotText.textContent = 'Forgot password?';
+                btnText.textContent = 'Sign in';
+            } else {
+                slogan.textContent = 'Gérez votre entreprise simplement';
+                labelUser.textContent = "Nom d'utilisateur";
+                labelPwd.textContent = 'Mot de passe';
+                rememberText.textContent = 'Se souvenir de moi';
+                forgotText.textContent = 'Mot de passe oublié ?';
+                btnText.textContent = 'Se connecter';
+            }
+        }
+
+        // 3. Afficher / Masquer le mot de passe
+        function togglePasswordVisibility() {
+            const pwdInput = document.getElementById('password-input');
+            const eyeIconWrapper = document.getElementById('toggle-eye');
+            if (pwdInput.type === 'password') {
+                pwdInput.type = 'text';
+                eyeIconWrapper.setAttribute('data-lucide', 'eye-off');
+            } else {
+                pwdInput.type = 'password';
+                eyeIconWrapper.setAttribute('data-lucide', 'eye');
+            }
+            lucide.createIcons();
+        }
+
+        // 4. Détection Caps Lock
+        const passwordInput = document.getElementById('password-input');
+        const capslockWarning = document.getElementById('capslock-warning');
+
+        passwordInput.addEventListener('keydown', (e) => {
+            if (e.getModifierState('CapsLock')) {
+                capslockWarning.classList.remove('hidden');
+            } else {
+                capslockWarning.classList.add('hidden');
+            }
+        });
+
+        passwordInput.addEventListener('keyup', (e) => {
+            if (e.getModifierState('CapsLock')) {
+                capslockWarning.classList.remove('hidden');
+            } else {
+                capslockWarning.classList.add('hidden');
+            }
+        });
+
+        // 5. Animation de validation avant soumission
+        document.getElementById('login-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const form = this;
+            const btn = document.getElementById('submit-btn');
+            const iconWrapper = document.getElementById('btn-icon-wrapper');
+            const text = document.getElementById('btn-text');
+            
+            btn.disabled = true;
+            btn.classList.add('opacity-90', 'cursor-not-allowed');
+            
+            iconWrapper.innerHTML = '<i data-lucide="check" class="w-5 h-5 text-emerald-300 animate-bounce"></i>';
+            text.textContent = 'Connexion réussie !';
+            btn.style.background = 'linear-gradient(135deg, #059669 0%, #0d9488 100%)';
+            lucide.createIcons();
+            
+            setTimeout(() => {
+                form.submit();
+            }, 800);
+        });
+    </script>
+</body>
+</html>

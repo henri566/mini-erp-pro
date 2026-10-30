@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block page_title %}Vente #{{ vente.id }} - Mini-ERP Pro{% endblock %}
+{% block header_title %}Détail de la vente #{{ vente.id }}{% endblock %}
+
+{% block content %}
+<style>
+    .table-detail th { font-size:13px; font-weight:600; color:rgba(255,255,255,.85); padding:14px 18px; text-align:left; white-space:nowrap; }
+    .table-detail td { padding:14px 18px; font-size:14px; color:#fff; white-space:nowrap; }
+    .table-detail tbody tr { border-top:1px solid rgba(255,255,255,.10); }
+    .info-label { font-size:13px; color:rgba(255,255,255,.70); }
+    .info-value { font-size:15px; font-weight:600; color:#fff; }
+    .btn-glass { background: rgba(255,255,255,.10); border: 1px solid rgba(255,255,255,.26); color:#fff; transition: background .2s ease; }
+    .btn-glass:hover { background: rgba(255,255,255,.20); }
+</style>
+
+<div class="max-w-4xl mx-auto space-y-6 animate-fade-in-up">
+
+    <div class="glass-card p-5 md:p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+            <h2 class="text-xl font-bold text-white">Vente #{{ vente.id }}</h2>
+            <p class="text-[13px] text-white/75 mt-0.5">{{ vente.date }}</p>
+        </div>
+        <div class="flex gap-3 flex-wrap">
+            <a href="{{ url_for('ventes') }}" class="btn-glass px-4 py-2.5 rounded-xl text-[13px] font-semibold flex items-center gap-2">
+                <i data-lucide="arrow-left" class="w-4 h-4"></i> Retour aux ventes
+            </a>
+            <a href="{{ url_for('telecharger_facture_pdf', vente_id=vente.id) }}" class="btn-cyan-primary px-4 py-2.5 rounded-xl text-[13px] font-semibold flex items-center gap-2">
+                <i data-lucide="file-text" class="w-4 h-4"></i> Télécharger la facture PDF
+            </a>
+        </div>
+    </div>
+
+    <div class="glass-card p-5 md:p-6 grid grid-cols-1 sm:grid-cols-3 gap-5">
+        <div><p class="info-label">Client</p><p class="info-value">{{ vente.client_nom or 'Client comptoir' }}</p></div>
+        <div><p class="info-label">Email</p><p class="info-value">{{ vente.client_email or '—' }}</p></div>
+        <div><p class="info-label">Téléphone</p><p class="info-value">{{ vente.client_telephone or '—' }}</p></div>
+    </div>
+
+    <div class="glass-card overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="table-detail w-full border-collapse">
+                <thead>
+                    <tr><th>Article</th><th>Quantité</th><th>Prix unitaire</th><th>Sous-total</th></tr>
+                </thead>
+                <tbody>
+                    {% for l in lignes %}
+                    <tr>
+                        <td class="font-bold">{{ l.produit_nom or 'Article supprimé' }}</td>
+                        <td>{{ l.quantite }}</td>
+                        <td><span class="montant-convertible" data-base="{{ l.prix_unitaire }}">{{ "%.2f"|format(l.prix_unitaire) }}</span> <span class="devise-symbole">€</span></td>
+                        <td class="font-bold"><span class="montant-convertible" data-base="{{ l.sous_total }}">{{ "%.2f"|format(l.sous_total) }}</span> <span class="devise-symbole">€</span></td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4" class="text-center text-white/70 p-8">Aucune ligne pour cette vente.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="flex justify-end items-center gap-4 p-5 border-t border-white/15">
+            <span class="text-[13px] text-white/80 font-semibold">TOTAL</span>
+            <span class="text-2xl font-extrabold" style="color:var(--success);">
+                <span class="montant-convertible" data-base="{{ vente.total }}">{{ "%.2f"|format(vente.total) }}</span>
+                <span class="devise-symbole">€</span>
+            </span>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        APP.appliquerMontants();
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    });
+</script>
+{% endblock %}

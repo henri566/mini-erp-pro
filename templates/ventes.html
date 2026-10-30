@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block page_title %}Ventes & Factures - {{ nom_entreprise }}{% endblock %}
+{% block header_title %}Gestion des Ventes{% endblock %}
+
+{% block content %}
+<style>
+    .chip { display:flex; align-items:center; justify-content:center; flex-shrink:0; border-radius:12px; border:1px solid transparent; }
+    .chip-accent  { color: var(--accent);  background: color-mix(in srgb, var(--accent) 18%, transparent); border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
+    .chip-violet  { color:#c4b5fd;         background: rgba(139,92,246,.20); border-color: rgba(139,92,246,.40); }
+    .chip-success { color: var(--success); background: rgba(52,211,153,.16); border-color: rgba(52,211,153,.35); }
+
+    .stat-label { font-size:13px; color:rgba(255,255,255,.80); font-weight:500; }
+    .stat-value { font-family:'Plus Jakarta Sans','Inter',sans-serif; font-weight:800; line-height:1.1; color:#fff; font-size:clamp(1.5rem, 1.1rem + 1vw, 2.1rem); }
+    .stat-note  { font-size:13px; color:rgba(255,255,255,.70); }
+    .text-success { color: var(--success) !important; }
+    .text-accent  { color: var(--accent)  !important; }
+
+    .btn-glass { background: rgba(255,255,255,.10); border: 1px solid rgba(255,255,255,.26); color:#fff; transition: background .2s ease, transform .2s ease; }
+    .btn-glass:hover { background: rgba(255,255,255,.20); transform: translateY(-2px); }
+    .empty-state { background: rgba(255,255,255,.05); border: 1px dashed rgba(255,255,255,.22); border-radius: 14px; }
+
+    .table-ventes th { font-size:13px; font-weight:600; color:rgba(255,255,255,.85); padding:14px 18px; text-align:left; white-space:nowrap; }
+    .table-ventes td { padding:14px 18px; font-size:14px; color:#fff; white-space:nowrap; }
+    .table-ventes tbody tr { border-top:1px solid rgba(255,255,255,.10); transition: background .2s ease; }
+    .table-ventes tbody tr:hover { background: rgba(255,255,255,.08); }
+</style>
+
+<div class="w-full space-y-6 animate-fade-in-up">
+
+    <!-- Bandeau -->
+    <div class="glass-card p-5 md:p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div class="flex items-center gap-4">
+            <div class="chip chip-accent w-12 h-12"><i data-lucide="shopping-cart" class="w-6 h-6"></i></div>
+            <div>
+                <h2 class="text-xl md:text-2xl font-bold text-white">Historique des Ventes</h2>
+                <p class="text-[13px] text-white/75 mt-0.5">Consultez vos transactions et téléchargez vos factures PDF.</p>
+            </div>
+        </div>
+        <a href="{{ url_for('nouvelle_vente') }}" class="btn-cyan-primary px-4 py-2.5 rounded-xl text-[13px] font-semibold flex items-center gap-2">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i> Nouvelle Vente
+        </a>
+    </div>
+
+    <!-- Cartes de synthèse (calculées sur la liste affichée) -->
+    {% set nb = ventes|length %}
+    {% set total_ca = ventes|sum(attribute='total') %}
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div class="glass-card glass-card-hover p-5">
+            <div class="flex items-center gap-3">
+                <div class="chip chip-success w-10 h-10"><i data-lucide="banknote" class="w-5 h-5"></i></div>
+                <span class="stat-label">{% if date_filtre %}Chiffre d'affaires du jour{% else %}Chiffre d'affaires total{% endif %}</span>
+            </div>
+            <p class="stat-value mt-4 text-success"><span class="montant-compact" data-base="{{ total_ca }}">{{ "%.2f"|format(total_ca) }}</span></p>
+            <p class="stat-note mt-2">Somme des ventes affichées</p>
+        </div>
+        <div class="glass-card glass-card-hover p-5">
+            <div class="flex items-center gap-3">
+                <div class="chip chip-accent w-10 h-10"><i data-lucide="shopping-basket" class="w-5 h-5"></i></div>
+                <span class="stat-label">Panier moyen</span>
+            </div>
+            <p class="stat-value mt-4 text-accent"><span class="montant-compact" data-base="{{ (total_ca / nb) if nb else 0 }}">{{ "%.2f"|format((total_ca / nb) if nb else 0) }}</span></p>
+            <p class="stat-note mt-2">Valeur moyenne par vente</p>
+        </div>
+        <div class="glass-card glass-card-hover p-5">
+            <div class="flex items-center gap-3">
+                <div class="chip chip-violet w-10 h-10"><i data-lucide="receipt" class="w-5 h-5"></i></div>
+                <span class="stat-label">Nombre de ventes</span>
+            </div>
+            <p class="stat-value mt-4">{{ nb }}</p>
+            <p class="stat-note mt-2">Transactions enregistrées</p>
+        </div>
+    </div>
+
+    <!-- Filtre par date -->
+    <form method="GET" action="{{ url_for('ventes') }}" class="glass-card p-4 flex flex-wrap items-center gap-3">
+        <label for="filtre-date" class="text-[13px] font-semibold text-white/90 flex items-center gap-2">
+            <i data-lucide="calendar" class="w-4 h-4 text-accent"></i> Filtrer par date
+        </label>
+        <input id="filtre-date" type="date" name="date" value="{{ date_filtre }}" class="floating-input" style="max-width:220px; padding:0.55rem 0.9rem;">
+        <button type="submit" class="btn-cyan-primary px-4 py-2 rounded-xl text-[13px] font-semibold">Filtrer</button>
+        {% if date_filtre %}
+        <a href="{{ url_for('ventes') }}" class="btn-glass px-4 py-2 rounded-xl text-[13px] font-semibold flex items-center gap-2">
+            <i data-lucide="x" class="w-4 h-4"></i> Réinitialiser
+        </a>
+        {% endif %}
+    </form>
+
+    <!-- Tableau -->
+    <div class="glass-card overflow-hidden">
+        {% if ventes %}
+        <div class="overflow-x-auto">
+            <table class="table-ventes w-full border-collapse">
+                <thead>
+                    <tr>
+                        <th>N° vente</th>
+                        <th>Client</th>
+                        <th>Date</th>
+                        <th>Montant total</th>
+                        <th style="text-align:right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for v in ventes %}
+                    <tr>
+                        <td><a href="{{ url_for('detail_vente', vente_id=v.id) }}" class="font-bold text-accent hover:underline">#{{ v.id }}</a></td>
+                        <td class="font-semibold">{{ (v.client_nom or 'Client comptoir')|title }}</td>
+                        <td class="text-white/85">{{ v.date }}</td>
+                        <td class="font-bold text-success">
+                            <span class="montant-convertible" data-base="{{ v.total }}">{{ "%.2f"|format(v.total) }}</span> <span class="devise-symbole">€</span>
+                        </td>
+                        <td style="text-align:right;">
+                            <div class="flex justify-end gap-2">
+                                <a href="{{ url_for('detail_vente', vente_id=v.id) }}" class="btn-glass px-3 py-1.5 rounded-lg text-[13px] font-semibold flex items-center gap-1.5">
+                                    <i data-lucide="eye" class="w-4 h-4"></i> Détails
+                                </a>
+                                <a href="{{ url_for('telecharger_facture_pdf', vente_id=v.id) }}" class="btn-glass px-3 py-1.5 rounded-lg text-[13px] font-semibold flex items-center gap-1.5">
+                                    <i data-lucide="file-text" class="w-4 h-4"></i> PDF
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state m-5 p-10 flex flex-col items-center gap-3 text-center">
+            <i data-lucide="shopping-cart" class="w-10 h-10 text-white/60"></i>
+            <p class="text-[13px] text-white/85">
+                {% if date_filtre %}Aucune vente à cette date.{% else %}Aucune vente enregistrée pour le moment.{% endif %}
+            </p>
+            <a href="{{ url_for('nouvelle_vente') }}" class="btn-cyan-primary px-4 py-2 rounded-xl text-[13px] font-semibold">Créer une vente</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        APP.appliquerMontants();
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    });
+</script>
+{% endblock %}

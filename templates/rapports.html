@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+{% block page_title %}Rapports & Export - Mini-ERP Pro{% endblock %}
+{% block header_title %}Rapports Financiers & Bilans{% endblock %}
+
+{% block content %}
+<style>
+    .chip { display:flex; align-items:center; justify-content:center; flex-shrink:0; border-radius:12px; border:1px solid transparent; }
+    .chip-accent  { color: var(--accent);  background: color-mix(in srgb, var(--accent) 18%, transparent); border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
+    .chip-violet  { color:#c4b5fd;         background: rgba(139,92,246,.20); border-color: rgba(139,92,246,.40); }
+    .chip-success { color: var(--success); background: rgba(52,211,153,.16); border-color: rgba(52,211,153,.35); }
+
+    .stat-label { font-size:13px; color:rgba(255,255,255,.80); font-weight:500; }
+    .stat-value { font-family:'Plus Jakarta Sans','Inter',sans-serif; font-weight:800; line-height:1.1; color:#fff; font-size:clamp(1.5rem, 1.1rem + 1vw, 2.1rem); }
+    .stat-note  { font-size:13px; color:rgba(255,255,255,.70); }
+    .text-danger  { color: var(--danger)  !important; }
+    .text-success { color: var(--success) !important; }
+    .text-accent  { color: var(--accent)  !important; }
+
+    .badge { display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:600; padding:2px 8px; border-radius:9999px; border:1px solid transparent; }
+    .badge-up   { color: var(--success); background: rgba(52,211,153,.14);  border-color: rgba(52,211,153,.35); }
+    .badge-down { color: var(--danger);  background: rgba(251,113,133,.14); border-color: rgba(251,113,133,.35); }
+    .badge-info { color: var(--accent);  background: color-mix(in srgb, var(--accent) 15%, transparent); border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
+
+    .empty-state { background: rgba(255,255,255,.05); border: 1px dashed rgba(255,255,255,.22); border-radius: 14px; }
+
+    .table-rapport th { font-size:13px; font-weight:600; color:rgba(255,255,255,.85); padding:14px 18px; text-align:left; white-space:nowrap; }
+    .table-rapport td { padding:14px 18px; font-size:14px; white-space:nowrap; }
+    .table-rapport tbody tr { border-top:1px solid rgba(255,255,255,.10); transition: background .2s ease; }
+    .table-rapport tbody tr:hover { background: rgba(255,255,255,.08); }
+</style>
+
+<div class="w-full space-y-6 animate-fade-in-up">
+
+    <!-- ========== Bandeau ========== -->
+    <div class="glass-card p-5 md:p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div class="flex items-center gap-4">
+            <div class="chip chip-accent w-12 h-12"><i data-lucide="trending-up" class="w-6 h-6"></i></div>
+            <div>
+                <h2 class="text-xl md:text-2xl font-bold text-white">Rapports Mensuels & Bilans</h2>
+                <p class="text-[13px] text-white/75 mt-0.5">Performances financières des 6 derniers mois, avec export Excel.</p>
+            </div>
+        </div>
+        <a href="{{ url_for('exporter_excel') }}" class="btn-cyan-primary px-4 py-2.5 rounded-xl text-[13px] font-semibold flex items-center gap-2">
+            <i data-lucide="file-spreadsheet" class="w-4 h-4"></i> Exporter en Excel (.xlsx)
+        </a>
+    </div>
+
+    <!-- ========== 3 cartes de synthèse ========== -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+
+        <div class="glass-card glass-card-hover p-5">
+            <div class="flex items-center gap-3">
+                <div class="chip chip-success w-10 h-10"><i data-lucide="wallet" class="w-5 h-5"></i></div>
+                <span class="stat-label">Bénéfice net (6 mois)</span>
+            </div>
+            <p class="stat-value mt-4 {% if total_benefice >= 0 %}text-success{% else %}text-danger{% endif %}">
+                <span class="montant-compact" data-base="{{ total_benefice }}"></span>
+            </p>
+            <p class="stat-note mt-2">Cumul des bénéfices mensuels</p>
+        </div>
+
+        <div class="glass-card glass-card-hover p-5">
+            <div class="flex items-center gap-3">
+                <div class="chip chip-violet w-10 h-10"><i data-lucide="trophy" class="w-5 h-5"></i></div>
+                <span class="stat-label">Meilleur mois (CA)</span>
+            </div>
+            <p class="stat-value mt-4 text-accent">
+                {% if meilleur_mois %}<span class="mois-label" data-mois="{{ meilleur_mois }}">{{ meilleur_mois }}</span>{% else %}&mdash;{% endif %}
+            </p>
+            <p class="stat-note mt-2">Record de chiffre d'affaires atteint</p>
+        </div>
+
+        <div class="glass-card glass-card-hover p-5">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="chip chip-accent w-10 h-10"><i data-lucide="percent" class="w-5 h-5"></i></div>
+                    <span class="stat-label">Marge nette</span>
+                </div>
+                <span class="badge {% if marge >= 0 %}badge-up{% else %}badge-down{% endif %}">{% if marge >= 30 %}Excellente{% elif marge >= 10 %}Correcte{% elif marge >= 0 %}Faible{% else %}Déficit{% endif %}</span>
+            </div>
+            <p class="stat-value mt-4">{{ marge|string|replace('.', ',') }} %</p>
+            <p class="stat-note mt-2">Bénéfice net divisé par le chiffre d'affaires</p>
+        </div>
+    </div>
+
+    <!-- ========== Graphique ========== -->
+    <div class="glass-card p-5 md:p-6">
+        <div class="flex items-center justify-between mb-1">
+            <h3 class="text-base font-bold text-white flex items-center gap-2">
+                <i data-lucide="line-chart" class="w-4 h-4 text-accent"></i> Chiffre d'affaires vs dépenses
+            </h3>
+            <span class="badge badge-info">6 derniers mois</span>
+        </div>
+        <p class="text-[13px] text-white/70 mb-4">Comparez vos revenus et vos charges mois par mois.</p>
+        <div class="h-80 relative">
+            <canvas id="rapportsChart"></canvas>
+            <div id="rapports-empty" class="empty-state hidden absolute inset-0 flex-col items-center justify-center gap-2 text-center p-6">
+                <i data-lucide="bar-chart-3" class="w-8 h-8 text-white/60"></i>
+                <p class="text-[13px] text-white/80">Aucune donnée sur les 6 derniers mois.<br>Enregistrez des ventes et des dépenses pour voir l'évolution.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== Tableau (le plus récent en premier) ========== -->
+    <div class="glass-card overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="table-rapport w-full border-collapse">
+                <thead>
+                    <tr>
+                        <th>Mois</th>
+                        <th>Chiffre d'affaires</th>
+                        <th>Dépenses</th>
+                        <th>Bénéfice net</th>
+                        <th>Ventes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in rapport|reverse %}
+                    <tr>
+                        <td class="font-bold text-white"><span class="mois-label" data-mois="{{ r.mois }}">{{ r.mois }}</span></td>
+                        <td class="font-bold text-success">
+                            <span class="montant-convertible" data-base="{{ r.ca }}">{{ "%.2f"|format(r.ca) }}</span> <span class="devise-symbole">€</span>
+                        </td>
+                        <td class="font-bold text-danger">
+                            <span class="montant-convertible" data-base="{{ r.depenses }}">{{ "%.2f"|format(r.depenses) }}</span> <span class="devise-symbole">€</span>
+                        </td>
+                        <td class="font-bold {% if r.benefice >= 0 %}text-accent{% else %}text-danger{% endif %}">
+                            <span class="montant-convertible" data-base="{{ r.benefice }}">{{ "%.2f"|format(r.benefice) }}</span> <span class="devise-symbole">€</span>
+                        </td>
+                        <td class="text-white/90 font-semibold">
+                            {% if r.nb_ventes > 0 %}<span class="badge badge-info">{{ r.nb_ventes }} vente{{ 's' if r.nb_ventes > 1 }}</span>{% else %}<span class="text-white/50">&mdash;</span>{% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="p-10 text-center text-[13px] text-white/80">Aucun rapport disponible.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Données du graphique -->
+<script id="rap-labels" type="application/json">{{ rapport | map(attribute='mois') | list | tojson }}</script>
+<script id="rap-ca" type="application/json">{{ rapport | map(attribute='ca') | list | tojson }}</script>
+<script id="rap-dep" type="application/json">{{ rapport | map(attribute='depenses') | list | tojson }}</script>
+
+<script>
+    // APP (devise, taux, formats) et Chart.js sont fournis par base.html.
+    const COULEUR_DEPENSES = '#fb7185';
+    let rapportsChart = null;
+
+    function formaterMois(code) {
+        const p = code.split('-').map(Number);
+        const txt = new Date(p[0], p[1] - 1, 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+        return txt.charAt(0).toUpperCase() + txt.slice(1);
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        APP.appliquerMontants();
+        document.querySelectorAll('.mois-label').forEach(function (el) { el.textContent = formaterMois(el.dataset.mois); });
+        dessinerGraphique();
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    });
+
+    function dessinerGraphique() {
+        const codes = JSON.parse(document.getElementById('rap-labels').textContent);
+        const ca = JSON.parse(document.getElementById('rap-ca').textContent);
+        const dep = JSON.parse(document.getElementById('rap-dep').textContent);
+        const canvas = document.getElementById('rapportsChart');
+        const vide = document.getElementById('rapports-empty');
+        if (rapportsChart) { rapportsChart.destroy(); rapportsChart = null; }
+
+        const aucune = function (t) { return !t.length || t.every(function (v) { return !v; }); };
+        if (aucune(ca) && aucune(dep)) {
+            canvas.classList.add('hidden');
+            vide.classList.remove('hidden'); vide.classList.add('flex');
+            return;
+        }
+
+        const accent = APP.couleur('--accent', '#8b5cf6');
+        const labels = codes.map(function (c) {
+            const p = c.split('-').map(Number);
+            return new Date(p[0], p[1] - 1, 1).toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' });
+        });
+        const ctx = canvas.getContext('2d');
+        const degrade = ctx.createLinearGradient(0, 0, 0, 320);
+        degrade.addColorStop(0, APP.hexToRgba(accent, 0.40));
+        degrade.addColorStop(1, APP.hexToRgba(accent, 0));
+
+        function serie(nom, donnees, couleur, remplir) {
+            return {
+                label: nom, data: donnees.map(APP.convertir),
+                borderColor: couleur, backgroundColor: remplir ? degrade : 'transparent', fill: !!remplir,
+                tension: 0.4, borderWidth: 3,
+                pointBackgroundColor: '#fff', pointBorderColor: couleur, pointBorderWidth: 2,
+                pointRadius: 5, pointHoverRadius: 7
+            };
+        }
+
+        rapportsChart = new Chart(ctx, {
+            type: 'line',
+            data: { labels: labels, datasets: [serie("Chiffre d'affaires", ca, accent, true), serie('Dépenses', dep, COULEUR_DEPENSES, false)] },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                interaction: { intersect: false, mode: 'index' },
+                plugins: {
+                    legend: { position: 'bottom', labels: { color: '#fff', font: { size: 13, weight: '600' }, boxWidth: 12, padding: 16 } },
+                    tooltip: {
+                        backgroundColor: 'rgba(11, 11, 46, 0.95)', borderColor: 'rgba(255,255,255,0.25)', borderWidth: 1,
+                        padding: 12, titleColor: '#fff', bodyColor: '#fff',
+                        callbacks: { label: function (c) { return ' ' + c.dataset.label + ' : ' + APP.formaterNombre(c.raw) + ' ' + APP.devise; } }
+                    }
+                },
+                scales: {
+                    x: { grid: { color: 'rgba(255,255,255,0.07)' }, ticks: { color: 'rgba(255,255,255,0.8)', font: { size: 12 } } },
+                    y: {
+                        beginAtZero: true, grid: { color: 'rgba(255,255,255,0.07)' },
+                        ticks: { color: 'rgba(255,255,255,0.8)', font: { size: 12 }, callback: function (v) { return APP.axe(Number(v)); } }
+                    }
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}

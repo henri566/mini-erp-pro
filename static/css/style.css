@@ -1,0 +1,38 @@
+/* static/css/style.css */
+
+/* --- Variables Globales (Thème Sombre par défaut) --- */
+:root {
+    --bg-primary: #0F172A;
+    --bg-card: #1E293B;
+    --border-color: #334155;
+    --text-primary: #F1F5F9;
+    --text-muted: #94A3B8;
+    --accent: #6366F1;
+    --accent-hover: #4F46E5;
+}
+
+/* --- Variables pour le Thème Clair --- */
+[data-theme="light"] {
+    --bg-primary: #F8FAFC;
+    --bg-card: #FFFFFF;
+    --border-color: #E2E8F0;
+    --text-primary: #0F172A;
+    --text-muted: #64748B;
+    --accent: #6366F1;
+    --accent-hover: #4F46E5;
+}
+
+/* --- Effet Glass (Glassmorphism) --- */
+.glass-card {
+    background: rgba(30, 41, 59, 0.75);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="light"] .glass-card {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+}

@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block page_title %}Créer une Nouvelle Vente{% endblock %}
+
+{% block content %}
+<div class="w-full space-y-8 animate-fade-in-up stagger-1 max-w-4xl mx-auto">
+    <div class="glass-card p-6 rounded-2xl flex justify-between items-center">
+        <div>
+            <h2 class="text-xl font-bold text-slate-100 flex items-center gap-2.5">
+                <i data-lucide="shopping-cart" class="w-5 h-5 text-sky-400"></i> Nouvelle Vente
+            </h2>
+            <p class="text-xs text-slate-400 mt-1">Sélectionnez un client et ajoutez les articles commandés.</p>
+        </div>
+        <a href="{{ url_for('ventes') }}" class="glass-card hover:bg-white/10 text-slate-200 px-4 py-2 rounded-xl text-xs font-medium transition flex items-center gap-2">
+            <i data-lucide="arrow-left" class="w-4 h-4"><span>Retour</span></i>
+        </a>
+    </div>
+
+    <form action="{{ url_for('nouvelle_vente') }}" method="POST" class="glass-card p-8 rounded-2xl space-y-6">
+        <!-- Sélection du client -->
+        <div class="space-y-2">
+            <label class="text-sm font-semibold text-slate-300">Client</label>
+            <select name="client_id" class="floating-input">
+                <option value="">-- Client comptoir (Anonyme) --</option>
+                {% for c in clients %}
+                <option value="{{ c.id }}">{{ c.nom }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Lignes de produits -->
+        <div class="space-y-4">
+            <div class="flex justify-between items-center border-b border-white/10 pb-2">
+                <h3 class="text-sm font-semibold text-slate-200">Articles</h3>
+                <button type="button" onclick="ajouterLigne()" class="text-xs bg-sky-500/20 text-sky-300 border border-sky-500/30 px-3 py-1.5 rounded-xl hover:bg-sky-500/30 transition flex items-center gap-1.5">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i> Ajouter un article
+                </button>
+            </div>
+
+            <div id="lignes-container" class="space-y-3">
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-center ligne-item">
+                    <div class="md:col-span-8">
+                        <select name="produit_id[]" required class="floating-input">
+                            <option value="">Sélectionner un produit...</option>
+                            {% for p in produits %}
+                            <option value="{{ p.id }}">{{ p.nom }} (Stock : {{ p.stock }} - {{ "%.2f"|format(p.prix) }} €)</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="md:col-span-3">
+                        <input type="number" name="quantite[]" value="1" min="1" required placeholder="Qté" class="floating-input">
+                    </div>
+                    <div class="md:col-span-1 text-center">
+                        <button type="button" onclick="supprimerLigne(this)" class="p-2.5 text-rose-400 hover:bg-rose-500/20 rounded-xl transition">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex justify-end pt-4 border-t border-white/10">
+            <button type="submit" class="btn-gradient-success text-white font-medium px-6 py-3 rounded-xl text-sm transition flex items-center gap-2">
+                <i data-lucide="check-circle" class="w-4 h-4"></i> Valider et Enregistrer la Vente
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    function ajouterLigne() {
+        const container = document.getElementById('lignes-container');
+        const premiereLigne = container.querySelector('.ligne-item');
+        const nouvelleLigne = premiereLigne.cloneNode(true);
+        nouvelleLigne.querySelector('input').value = '1';
+        container.appendChild(nouvelleLigne);
+        lucide.createIcons();
+    }
+
+    function supprimerLigne(btn) {
+        const container = document.getElementById('lignes-container');
+        if (container.children.length > 1) {
+            btn.closest('.ligne-item').remove();
+        } else {
+            alert("La vente doit contenir au moins un article.");
+        }
+    }
+</script>
+{% endblock %}

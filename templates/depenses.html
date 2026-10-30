@@ -1,0 +1,284 @@
+{% extends "base.html" %}
+
+{% block page_title %}Dépenses - Mini-ERP Pro{% endblock %}
+{% block header_title %}Gestion des Dépenses & Charges{% endblock %}
+
+{% block content %}
+<div class="w-full space-y-8 animate-fade-in-up stagger-1">
+    
+    <!-- En-tête de page -->
+    <div class="glass-card p-6 rounded-2xl flex flex-col md:flex-row justify-between items-center gap-4 relative overflow-hidden">
+        <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-pink-500/15 rounded-full blur-2xl pointer-events-none"></div>
+        <div>
+            <h2 class="text-xl font-bold text-slate-100 flex items-center gap-2.5">
+                <i data-lucide="credit-card" class="w-5 h-5 text-rose-400"></i> Suivi des Dépenses
+            </h2>
+            <p class="text-[13px] text-slate-300 mt-1">Enregistrez et suivez les charges et dépenses opérationnelles de votre entreprise.</p>
+        </div>
+        <button onclick="openModal('addDepenseModal')" class="btn-cyan-primary px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 relative z-10">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i> Nouvelle Dépense
+        </button>
+    </div>
+
+    <!-- Cartes de Résumé Dépenses (Total, Dépense moyenne, Plus grosse catégorie) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <!-- Carte 1 : Total -->
+        <div class="glass-card p-6 rounded-2xl space-y-3 relative overflow-hidden">
+            <div class="absolute -right-6 -top-6 w-24 h-24 bg-rose-500/10 rounded-full blur-xl pointer-events-none"></div>
+            <span class="text-[13px] text-slate-200 font-medium">Total des Dépenses</span>
+            {% set total_dep = namespace(val=0) %}
+            {% for d in depenses %}
+                {% set total_dep.val = total_dep.val + d.montant %}
+            {% endfor %}
+            <h3 class="text-2xl font-bold text-rose-400">
+                <span class="montant-convertible" data-base="{{ total_dep.val }}">{{ "%.2f"|format(total_dep.val) }}</span> <span class="devise-symbole">€</span>
+            </h3>
+            <p class="text-[13px] text-slate-300">Somme globale de toutes les charges enregistrées</p>
+        </div>
+
+        <!-- Carte 2 : Moyenne & Plus grosse catégorie -->
+        <div class="glass-card p-6 rounded-2xl space-y-3 relative overflow-hidden">
+            <div class="absolute -right-6 -top-6 w-24 h-24 bg-violet-500/10 rounded-full blur-xl pointer-events-none"></div>
+            <span class="text-[13px] text-slate-200 font-medium">Indicateurs Clés</span>
+            <div class="grid grid-cols-2 gap-4 pt-1">
+                <div>
+                    <p class="text-[11px] text-slate-400">Dépense Moyenne</p>
+                    {% set nb_dep = depenses|length %}
+                    {% set dep_moy = (total_dep.val / nb_dep) if nb_dep > 0 else 0 %}
+                    <p class="text-lg font-bold text-slate-100">
+                        <span class="montant-convertible" data-base="{{ dep_moy }}">{{ "%.2f"|format(dep_moy) }}</span> <span class="devise-symbole">€</span>
+                    </p>
+                </div>
+                <div>
+                    <p class="text-[11px] text-slate-400">Plus Grosse Catégorie</p>
+                    {% set cats = {} %}
+                    {% for d in depenses %}
+                        {% if d.categorie in cats %}
+                            {% set _ = cats.update({d.categorie: cats[d.categorie] + d.montant}) %}
+                        {% else %}
+                            {% set _ = cats.update({d.categorie: d.montant}) %}
+                        {% endif %}
+                    {% endfor %}
+                    {% set max_cat = namespace(nom='Aucune', val=0) %}
+                    {% for cat, val in cats.items() %}
+                        {% if val > max_cat.val %}
+                            {% set max_cat.val = val %}
+                            {% set max_cat.nom = cat %}
+                        {% endif %}
+                    {% endfor %}
+                    <p class="text-lg font-bold text-violet-400 truncate">{{ max_cat.nom }}</p>
+                </div>
+            </div>
+            <p class="text-[13px] text-slate-300">Analyse de répartition des charges</p>
+        </div>
+    </div>
+
+    <!-- Tableau -->
+    <div class="glass-card rounded-2xl overflow-hidden shadow-2xl">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="border-b border-white/10 text-xs uppercase tracking-wider text-slate-400">
+                        <th class="p-4">Description</th>
+                        <th class="p-4">Catégorie</th>
+                        <th class="p-4">Date</th>
+                        <th class="p-4">Montant</th>
+                        <th class="p-4 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5 text-sm">
+                    {% for d in depenses %}
+                    <tr class="hover:bg-violet-500/5 transition">
+                        <td class="p-4 font-semibold text-slate-100">{{ d.description }}</td>
+                        <td class="p-4">
+                            <span class="px-2.5 py-1 rounded-full text-xs bg-violet-500/20 text-violet-300 border border-violet-500/30 font-semibold">
+                                {{ d.categorie }}
+                            </span>
+                        </td>
+                        <td class="p-4 text-[13px] text-slate-300">{{ d.date }}</td>
+                        <td class="p-4 font-bold text-rose-400">
+                            <span class="montant-convertible" data-base="{{ d.montant }}">{{ "%.2f"|format(d.montant) }}</span> <span class="devise-symbole">€</span>
+                        </td>
+                        <td class="p-4 text-right space-x-2">
+                            <!-- BOUTON MODIFIER -->
+                            <button type="button" 
+                                    class="btn-modifier inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-violet-500/10 text-violet-300 hover:bg-violet-500/20 text-xs font-medium transition border border-violet-500/20"
+                                    data-id="{{ d.id }}"
+                                    data-description="{{ d.description }}"
+                                    data-categorie="{{ d.categorie }}"
+                                    data-montant="{{ d.montant }}">
+                                <i data-lucide="edit-3" class="w-3.5 h-3.5"></i> Modifier
+                            </button>
+                            <!-- BOUTON SUPPRIMER AVEC MODALE EN VERRE -->
+                            <form action="{{ url_for('supprimer_depense', depense_id=d.id) }}" method="POST" class="inline-block">
+                                <button type="button" onclick="demanderConfirmationSuppression(this.form, '{{ d.description|e }}')" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 text-xs font-medium transition border border-rose-500/20">
+                                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Supprimer
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="p-16 text-center">
+                            <div class="flex flex-col items-center justify-center space-y-3">
+                                <div class="w-16 h-16 rounded-2xl bg-rose-500/10 text-rose-400 border border-rose-500/20 flex items-center justify-center shadow-inner">
+                                    <i data-lucide="wallet" class="w-8 h-8"></i>
+                                </div>
+                                <h3 class="text-base font-bold text-slate-200">Aucune dépense enregistrée</h3>
+                                <p class="text-[13px] text-slate-300 max-w-sm">Suivez vos charges professionnelles en ajoutant votre première dépense.</p>
+                                <button onclick="openModal('addDepenseModal')" class="btn-cyan-primary px-5 py-2.5 rounded-xl text-xs font-semibold mt-2">
+                                    Ajouter une dépense
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- MODALE AJOUT DÉPENSE -->
+<div id="addDepenseModal" class="fixed inset-0 bg-black/75 backdrop-blur-md hidden items-center justify-center z-50 p-4">
+    <div class="glass-card p-6 rounded-2xl w-full max-w-md space-y-6 animate-fade-in-up border border-white/20 shadow-2xl">
+        <div class="flex justify-between items-center border-b border-white/10 pb-4">
+            <h3 class="text-base font-bold text-slate-100 flex items-center gap-2">
+                <i data-lucide="credit-card" class="w-5 h-5 text-rose-400"></i> Enregistrer une dépense
+            </h3>
+            <button onclick="closeModal('addDepenseModal')" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+        <form action="{{ url_for('ajouter_depense') }}" method="POST" class="space-y-4">
+            <div class="floating-group">
+                <input type="text" name="description" required placeholder=" " class="floating-input text-[13px]">
+                <label class="floating-label">Description</label>
+            </div>
+            <div class="floating-group">
+                <input type="text" name="categorie" required placeholder=" " class="floating-input text-[13px]">
+                <label class="floating-label">Catégorie (ex: Loyer, Salaires...)</label>
+            </div>
+            <div class="floating-group">
+                <input type="number" step="0.01" min="0" name="montant" required placeholder=" " class="floating-input text-[13px]">
+                <label class="floating-label">Montant</label>
+            </div>
+            <div class="flex justify-end gap-3 pt-4 border-t border-white/10">
+                <button type="button" onclick="closeModal('addDepenseModal')" class="glass-card hover:bg-white/10 px-4 py-2.5 rounded-xl text-xs transition text-slate-300">Annuler</button>
+                <button type="submit" class="btn-cyan-primary px-5 py-2.5 rounded-xl text-xs font-semibold">Enregistrer</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODALE MODIFIER DÉPENSE -->
+<div id="editDepenseModal" class="fixed inset-0 bg-black/75 backdrop-blur-md hidden items-center justify-center z-50 p-4">
+    <div class="glass-card p-6 rounded-2xl w-full max-w-md space-y-6 animate-fade-in-up border border-white/20 shadow-2xl">
+        <div class="flex justify-between items-center border-b border-white/10 pb-4">
+            <h3 class="text-base font-bold text-slate-100 flex items-center gap-2">
+                <i data-lucide="edit-3" class="w-5 h-5 text-violet-400"></i> Modifier la dépense
+            </h3>
+            <button onclick="closeModal('editDepenseModal')" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+        <form id="editDepenseForm" method="POST" class="space-y-4">
+            <div class="floating-group">
+                <input type="text" id="edit_description" name="description" required placeholder=" " class="floating-input text-[13px]">
+                <label class="floating-label">Description</label>
+            </div>
+            <div class="floating-group">
+                <input type="text" id="edit_categorie" name="categorie" required placeholder=" " class="floating-input text-[13px]">
+                <label class="floating-label">Catégorie</label>
+            </div>
+            <div class="floating-group">
+                <input type="number" step="0.01" min="0" id="edit_montant" name="montant" required placeholder=" " class="floating-input text-[13px]">
+                <label class="floating-label">Montant</label>
+            </div>
+            <div class="flex justify-end gap-3 pt-4 border-t border-white/10">
+                <button type="button" onclick="closeModal('editDepenseModal')" class="glass-card hover:bg-white/10 px-4 py-2.5 rounded-xl text-xs transition text-slate-300">Annuler</button>
+                <button type="submit" class="btn-cyan-primary px-5 py-2.5 rounded-xl text-xs font-semibold">Mettre à jour</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODALE DE CONFIRMATION EN VERRE POUR LA SUPPRESSION -->
+<div id="confirmDeleteModal" class="fixed inset-0 bg-black/75 backdrop-blur-md hidden items-center justify-center z-50 p-4">
+    <div class="glass-card p-6 rounded-2xl w-full max-w-sm space-y-6 text-center animate-fade-in-up border border-white/20 shadow-2xl">
+        <div class="w-14 h-14 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center justify-center mx-auto shadow-inner">
+            <i data-lucide="alert-triangle" class="w-7 h-7"></i>
+        </div>
+        <div class="space-y-2">
+            <h3 class="text-base font-bold text-slate-100">Confirmer la suppression</h3>
+            <p id="confirmDeleteText" class="text-[13px] text-slate-300">Êtes-vous sûr de vouloir supprimer cet élément ?</p>
+        </div>
+        <div class="flex justify-center gap-3 pt-2">
+            <button type="button" onclick="closeModal('confirmDeleteModal')" class="glass-card hover:bg-white/10 px-4 py-2.5 rounded-xl text-xs transition text-slate-300 w-full">Annuler</button>
+            <button type="button" id="confirmDeleteBtn" class="px-4 py-2.5 rounded-xl text-xs font-semibold bg-rose-500 hover:bg-rose-600 text-white transition w-full shadow-lg shadow-rose-500/30">Supprimer</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let formEnCoursDeSuppression = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+        const activeDevise = document.getElementById('devise-select') ? document.getElementById('devise-select').value : 'Ar';
+        mettreAJourDevises(activeDevise);
+
+        // Gestionnaire d'événement pour les boutons modifier
+        document.querySelectorAll('.btn-modifier').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const id = btn.dataset.id;
+                document.getElementById('edit_description').value = btn.dataset.description;
+                document.getElementById('edit_categorie').value = btn.dataset.categorie;
+                document.getElementById('edit_montant').value = btn.dataset.montant;
+                document.getElementById('editDepenseForm').action = `/depenses/modifier/${id}`;
+                openModal('editDepenseModal');
+            });
+        });
+    });
+
+    function demanderConfirmationSuppression(form, nomItem) {
+        formEnCoursDeSuppression = form;
+        document.getElementById('confirmDeleteText').textContent = `Êtes-vous sûr de vouloir supprimer "${nomItem}" ? Cette action est irréversible.`;
+        openModal('confirmDeleteModal');
+    }
+
+    document.getElementById('confirmDeleteBtn').addEventListener('click', () => {
+        if (formEnCoursDeSuppression) {
+            formEnCoursDeSuppression.submit();
+        }
+    });
+
+    function mettreAJourDevises(devise) {
+        const elements = document.querySelectorAll('.montant-convertible');
+        const symboles = document.querySelectorAll('.devise-symbole');
+        const TAUX_AR = 5021.0;
+        const TAUX_USD = 1.08;
+
+        elements.forEach((el, index) => {
+            let baseVal = parseFloat(el.dataset.base);
+            if (!isNaN(baseVal)) {
+                let finalVal = baseVal;
+                let symboleTexte = '€';
+
+                if (devise === 'Ar') {
+                    finalVal = baseVal * TAUX_AR;
+                    symboleTexte = 'Ar';
+                    el.textContent = Math.round(finalVal).toLocaleString('fr-FR').replace(/\u202f/g, ' ').replace(/\u00a0/g, ' ');
+                } else if (devise === '$') {
+                    finalVal = baseVal * TAUX_USD;
+                    symboleTexte = '$';
+                    el.textContent = finalVal.toLocaleString('fr-FR', {minimumFractionDigits: 2, maximumFractionDigits: 2}).replace(/\u202f/g, ' ').replace(/\u00a0/g, ' ');
+                } else {
+                    symboleTexte = '€';
+                    el.textContent = finalVal.toLocaleString('fr-FR', {minimumFractionDigits: 2, maximumFractionDigits: 2}).replace(/\u202f/g, ' ').replace(/\u00a0/g, ' ');
+                }
+
+                if (symboles[index]) {
+                    symboles[index].textContent = symboleTexte;
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+
+{% block page_title %}Produits & Stock - Mini-ERP Pro{% endblock %}
+{% block header_title %}Gestion des Produits & Stocks{% endblock %}
+
+{% block content %}
+<div class="w-full space-y-8 animate-fade-in-up stagger-1">
+    
+    <!-- En-tête de page -->
+    <div class="glass-card p-6 rounded-2xl flex flex-col md:flex-row justify-between items-center gap-4">
+        <div>
+            <h2 class="text-xl font-bold text-slate-100 flex items-center gap-2.5">
+                <i data-lucide="package" class="w-5 h-5 text-violet-400"></i> Catalogue & Stocks
+            </h2>
+            <p class="text-[13px] text-slate-300 mt-1">Gérez votre catalogue de produits, suivez les niveaux de stock et les prix unitaires.</p>
+        </div>
+        <button onclick="openModal('addProduitModal')" class="btn-cyan-primary px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i> Ajouter un Produit
+        </button>
+    </div>
+
+    <!-- 3 Cartes de Résumé -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <div class="glass-card p-6 rounded-2xl space-y-3">
+            <span class="text-[13px] text-slate-200 font-medium">Total Produits</span>
+            <h3 class="text-2xl font-bold text-slate-100">{{ produits|length }}</h3>
+            <p class="text-[13px] text-slate-300">Références enregistrées</p>
+        </div>
+        <div class="glass-card p-6 rounded-2xl space-y-3">
+            <span class="text-[13px] text-slate-200 font-medium">Valeur Totale du Stock</span>
+            {% set total_stock_val = namespace(val=0) %}
+            {% for p in produits %}
+                {% set total_stock_val.val = total_stock_val.val + (p.prix * p.stock) %}
+            {% endfor %}
+            <h3 class="text-2xl font-bold text-emerald-400"><span class="montant-convertible" data-base="{{ total_stock_val.val }}">{{ "%.2f"|format(total_stock_val.val) }}</span> <span class="devise-symbole">€</span></h3>
+            <p class="text-[13px] text-slate-300">Estimation du capital en stock</p>
+        </div>
+        <div class="glass-card p-6 rounded-2xl space-y-3">
+            <span class="text-[13px] text-slate-200 font-medium">Alertes de Rupture</span>
+            {% set rupture_count = namespace(val=0) %}
+            {% for p in produits %}
+                {% if p.stock <= p.seuil_alerte %}
+                    {% set rupture_count.val = rupture_count.val + 1 %}
+                {% endif %}
+            {% endfor %}
+            <h3 class="text-2xl font-bold text-rose-400">{{ rupture_count.val }}</h3>
+            <p class="text-[13px] text-slate-300">Produits sous le seuil critique</p>
+        </div>
+    </div>
+
+    <!-- Barre de recherche -->
+    <div class="glass-card p-4 rounded-2xl flex items-center justify-between gap-4">
+        <form method="GET" action="{{ url_for('produits') }}" class="flex items-center gap-3 w-full max-w-md">
+            <div class="relative w-full">
+                <input type="text" name="q" value="{{ recherche }}" placeholder="Rechercher un produit..." class="floating-input pl-10 text-[13px]">
+                <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-3.5"></i>
+            </div>
+            <button type="submit" class="btn-cyan-primary px-4 py-2.5 rounded-xl text-xs font-semibold flex-shrink-0">Rechercher</button>
+        </form>
+    </div>
+
+    <!-- Tableau -->
+    <div class="glass-card rounded-2xl overflow-hidden shadow-2xl">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="border-b border-violet-500/20 text-xs uppercase tracking-wider text-slate-400">
+                        <th class="p-4">Produit</th>
+                        <th class="p-4">Prix Unitaire</th>
+                        <th class="p-4">Stock Actuel</th>
+                        <th class="p-4">Seuil d'Alerte</th>
+                        <th class="p-4 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5 text-sm">
+                    {% for p in produits %}
+                    <tr class="hover:bg-violet-500/5 transition">
+                        <td class="p-4 flex items-center gap-3">
+                            {% set colors = ['bg-violet-500/20 text-violet-400 border-violet-500/30', 'bg-pink-500/20 text-pink-400 border-pink-500/30', 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30', 'bg-amber-500/20 text-amber-400 border-amber-500/30'] %}
+                            {% set color_class = colors[p.id % colors|length] %}
+                            <div class="w-10 h-10 rounded-xl {{ color_class }} border flex items-center justify-center font-bold text-sm flex-shrink-0">
+                                {{ p.nom[:2]|upper }}
+                            </div>
+                            <div>
+                                <span class="font-semibold text-slate-100">{{ p.nom }}</span>
+                                <p class="text-[13px] text-slate-300">ID : #{{ p.id }}</p>
+                            </div>
+                        </td>
+                        <td class="p-4 font-medium text-violet-300">
+                            <span class="montant-convertible" data-base="{{ p.prix }}">{{ "%.2f"|format(p.prix) }}</span> <span class="devise-symbole">€</span>
+                        </td>
+                        <td class="p-4">
+                            {% if p.stock == 0 %}
+                                <!-- Badge Critique (Rouge) si stock à 0 -->
+                                <span class="px-2.5 py-1 rounded-full text-xs bg-rose-500/20 text-rose-300 border border-rose-500/30 font-semibold flex items-center gap-1.5 w-max">
+                                    <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i> {{ p.stock }} (Critique)
+                                </span>
+                            {% elif p.stock <= p.seuil_alerte %}
+                                <!-- Badge Stock Bas Intermédiaire (Orange) si stock <= seuil mais > 0 -->
+                                <span class="px-2.5 py-1 rounded-full text-xs bg-amber-500/20 text-amber-300 border border-amber-500/30 font-semibold flex items-center gap-1.5 w-max">
+                                    <i data-lucide="alert-circle" class="w-3.5 h-3.5"></i> {{ p.stock }} (Stock Bas)
+                                </span>
+                            {% else %}
+                                <!-- Badge Normal (OK Vert) -->
+                                <span class="px-2.5 py-1 rounded-full text-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold flex items-center gap-1.5 w-max">
+                                    <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i> {{ p.stock }} (OK)
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="p-4 text-[13px] text-slate-200">{{ p.seuil_alerte }}</td>
+                        <td class="p-4 text-right space-x-2">
+                            <a href="{{ url_for('modifier_produit', produit_id=p.id) }}" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-violet-500/10 text-violet-300 hover:bg-violet-500/20 text-xs font-medium transition border border-violet-500/20">
+                                <i data-lucide="edit-3" class="w-3.5 h-3.5"></i> Modifier
+                            </a>
+                            <form action="{{ url_for('supprimer_produit', produit_id=p.id) }}" method="POST" class="inline-block form-suppression">
+                                <button type="button" onclick="demanderConfirmationSuppression(this.form, '{{ p.nom|e }}')" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 text-xs font-medium transition border border-rose-500/20">
+                                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Supprimer
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="p-12 text-center">
+                            <div class="flex flex-col items-center justify-center space-y-3">
+                                <div class="w-16 h-16 rounded-full bg-violet-500/10 text-violet-400 border border-violet-500/20 flex items-center justify-center">
+                                    <i data-lucide="package-open" class="w-8 h-8"></i>
+                                </div>
+                                <h3 class="text-base font-bold text-slate-200">Aucun produit enregistré</h3>
+                                <p class="text-[13px] text-slate-300 max-w-sm">Commencez par ajouter votre premier produit pour alimenter votre catalogue.</p>
+                                <button onclick="openModal('addProduitModal')" class="btn-cyan-primary px-4 py-2 rounded-xl text-xs font-semibold mt-2">
+                                    Ajouter le premier produit
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- MODALE AJOUT PRODUIT -->
+<div id="addProduitModal" class="fixed inset-0 bg-black/75 backdrop-blur-md hidden items-center justify-center z-50 p-4">
+    <div class="glass-card p-6 rounded-2xl w-full max-w-md space-y-6 animate-fade-in-up border border-white/20 shadow-2xl">
+        <div class="flex justify-between items-center border-b border-white/10 pb-4">
+            <h3 class="text-base font-bold text-slate-100 flex items-center gap-2">
+                <i data-lucide="package-plus" class="w-5 h-5 text-violet-400"></i> Ajouter un produit
+            </h3>
+            <button onclick="closeModal('addProduitModal')" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+        <form action="{{ url_for('ajouter_produit') }}" method="POST" class="space-y-4">
+            <div class="floating-group">
+                <input type="text" name="nom" required placeholder=" " class="floating-input text-[13px]">
+                <label class="floating-label">Nom du produit</label>
+            </div>
+            <div class="floating-group">
+                <input type="number" step="0.01" min="0" name="prix" required placeholder=" " class="floating-input text-[13px]">
+                <label class="floating-label">Prix unitaire (€)</label>
+            </div>
+            <div class="floating-group">
+                <input type="number" min="0" name="stock" required placeholder=" " class="floating-input text-[13px]">
+                <label class="floating-label">Quantité en stock</label>
+            </div>
+            <div class="floating-group">
+                <input type="number" min="0" name="seuil_alerte" value="5" placeholder=" " class="floating-input text-[13px]">
+                <label class="floating-label">Seuil d'alerte rupture</label>
+            </div>
+            <div class="flex justify-end gap-3 pt-4 border-t border-white/10">
+                <button type="button" onclick="closeModal('addProduitModal')" class="glass-card hover:bg-white/10 px-4 py-2.5 rounded-xl text-xs transition text-slate-300">Annuler</button>
+                <button type="submit" class="btn-cyan-primary px-5 py-2.5 rounded-xl text-xs font-semibold">Enregistrer</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODALE DE CONFIRMATION EN VERRE POUR LA SUPPRESSION -->
+<div id="confirmDeleteModal" class="fixed inset-0 bg-black/75 backdrop-blur-md hidden items-center justify-center z-50 p-4">
+    <div class="glass-card p-6 rounded-2xl w-full max-w-sm space-y-6 text-center animate-fade-in-up border border-white/20 shadow-2xl">
+        <div class="w-14 h-14 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center justify-center mx-auto shadow-inner">
+            <i data-lucide="alert-triangle" class="w-7 h-7"></i>
+        </div>
+        <div class="space-y-2">
+            <h3 class="text-base font-bold text-slate-100">Confirmer la suppression</h3>
+            <p id="confirmDeleteText" class="text-[13px] text-slate-300">Êtes-vous sûr de vouloir supprimer cet élément ?</p>
+        </div>
+        <div class="flex justify-center gap-3 pt-2">
+            <button type="button" onclick="closeModal('confirmDeleteModal')" class="glass-card hover:bg-white/10 px-4 py-2.5 rounded-xl text-xs transition text-slate-300 w-full">Annuler</button>
+            <button type="button" id="confirmDeleteBtn" class="px-4 py-2.5 rounded-xl text-xs font-semibold bg-rose-500 hover:bg-rose-600 text-white transition w-full shadow-lg shadow-rose-500/30">Supprimer</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let formEnCoursDeSuppression = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+        const activeDevise = document.getElementById('devise-select') ? document.getElementById('devise-select').value : 'Ar';
+        mettreAJourDevises(activeDevise);
+    });
+
+    function demanderConfirmationSuppression(form, nomItem) {
+        formEnCoursDeSuppression = form;
+        document.getElementById('confirmDeleteText').textContent = `Êtes-vous sûr de vouloir supprimer "${nomItem}" ? Cette action est irréversible.`;
+        openModal('confirmDeleteModal');
+    }
+
+    document.getElementById('confirmDeleteBtn').addEventListener('click', () => {
+        if (formEnCoursDeSuppression) {
+            formEnCoursDeSuppression.submit();
+        }
+    });
+
+    function mettreAJourDevises(devise) {
+        const elements = document.querySelectorAll('.montant-convertible');
+        const symboles = document.querySelectorAll('.devise-symbole');
+        const TAUX_AR = 5021.0;
+        const TAUX_USD = 1.08;
+
+        elements.forEach((el, index) => {
+            let baseVal = parseFloat(el.dataset.base);
+            if (!isNaN(baseVal)) {
+                let finalVal = baseVal;
+                let symboleTexte = '€';
+
+                if (devise === 'Ar') {
+                    finalVal = baseVal * TAUX_AR;
+                    symboleTexte = 'Ar';
+                    el.textContent = Math.round(finalVal).toLocaleString('fr-FR').replace(/\u202f/g, ' ').replace(/\u00a0/g, ' ');
+                } else if (devise === '$') {
+                    finalVal = baseVal * TAUX_USD;
+                    symboleTexte = '$';
+                    el.textContent = finalVal.toLocaleString('fr-FR', {minimumFractionDigits: 2, maximumFractionDigits: 2}).replace(/\u202f/g, ' ').replace(/\u00a0/g, ' ');
+                } else {
+                    symboleTexte = '€';
+                    el.textContent = finalVal.toLocaleString('fr-FR', {minimumFractionDigits: 2, maximumFractionDigits: 2}).replace(/\u202f/g, ' ').replace(/\u00a0/g, ' ');
+                }
+
+                if (symboles[index]) {
+                    symboles[index].textContent = symboleTexte;
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}

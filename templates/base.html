@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="{{ current_lang }}" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="accent-color" content="{{ accent_color }}">
+    <title>{% block page_title %}{{ nom_entreprise }}{% endblock %}</title>
+
+    <!-- La couleur d'accentuation (Paramètres) est appliquée avant l'affichage -->
+    <script>
+        (function () {
+            try {
+                var m = document.querySelector('meta[name="accent-color"]');
+                var c = m && m.content;
+                if (/^#[0-9a-fA-F]{6}$/.test(c)) document.documentElement.style.setProperty('--accent', c);
+            } catch (e) {}
+        })();
+    </script>
+
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+    <script src="https://unpkg.com/lucide@0.441.0/dist/umd/lucide.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
+
+        /* ============ VARIABLES (change ici = change toute l'application) ============ */
+        :root {
+            --bg-1: #0b0b2e;
+            --bg-2: #1a1250;
+            --glass: rgba(255, 255, 255, 0.12);
+            --glass-strong: rgba(255, 255, 255, 0.18);
+            --glass-border: rgba(255, 255, 255, 0.26);
+            --accent: #8b5cf6;      /* remplacé par la couleur choisie dans Paramètres */
+            --accent-2: #0ea5e9;    /* fin des dégradés */
+            --violet: #8b5cf6;
+            --success: #34d399;
+            --warning: #f59e0b;
+            --danger: #fb7185;
+            --text: #ffffff;
+            --text-muted: rgba(255, 255, 255, 0.72);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            color: var(--text);
+            background: linear-gradient(135deg, var(--bg-1), var(--bg-2));
+            background-attachment: fixed;
+            overflow-x: hidden;
+        }
+        h1, h2, h3, .brand-font { font-family: 'Plus Jakarta Sans', 'Inter', sans-serif; letter-spacing: -0.01em; }
+
+        /* ============ VERRE DÉPOLI ============ */
+        .glass-card {
+            background: var(--glass);
+            backdrop-filter: blur(22px) saturate(150%);
+            -webkit-backdrop-filter: blur(22px) saturate(150%);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.30), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+            position: relative;
+        }
+        .glass-card-hover { transition: transform .25s ease, background .25s ease, box-shadow .25s ease; }
+        .glass-card-hover:hover {
+            background: var(--glass-strong);
+            transform: translateY(-3px);
+            box-shadow: 0 14px 40px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        }
+        header.glass-card { background: rgba(20, 16, 70, 0.78); }  /* en-tête plus opaque : le contenu ne transparaît plus */
+
+        /* ============ BOUTONS & MENU ACTIF ============ */
+        .btn-cyan-primary, .nav-active {
+            background: linear-gradient(135deg, var(--accent), var(--accent-2)) !important;
+            color: #fff !important;
+            border: 1px solid transparent !important;
+            box-shadow: 0 0 20px color-mix(in srgb, var(--accent) 55%, transparent) !important;
+        }
+        .btn-cyan-primary { transition: transform .2s ease, box-shadow .2s ease; }
+        .btn-cyan-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 28px color-mix(in srgb, var(--accent) 80%, transparent) !important;
+        }
+        .sidebar-link:not(.nav-active) {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            color: var(--text);
+        }
+        .sidebar-link:not(.nav-active):hover { background: rgba(255, 255, 255, 0.18); }
+
+        /* ============ UNE SEULE COULEUR D'ACCENT : le cyan en dur suit la couleur choisie ============ */
+        .text-cyan-300, .text-cyan-400, .text-sky-400 { color: var(--accent) !important; }
+        .bg-cyan-500\/10, .bg-cyan-500\/20, .bg-sky-500\/10 {
+            background-color: color-mix(in srgb, var(--accent) 15%, transparent) !important;
+        }
+        .border-cyan-500\/20, .border-cyan-500\/30 {
+            border-color: color-mix(in srgb, var(--accent) 35%, transparent) !important;
+        }
+
+        /* ============ LISIBILITÉ DES TABLEAUX ============ */
+        thead th { font-size: 13px !important; color: rgba(255, 255, 255, 0.85) !important; }
+        .text-slate-400 { color: rgba(255, 255, 255, 0.72) !important; }
+
+        /* ============ CHAMPS ============ */
+        .floating-input {
+            background: rgba(255, 255, 255, 0.10);
+            border: 1px solid rgba(255, 255, 255, 0.24);
+            border-radius: 12px;
+            padding: 0.75rem 1rem;
+            color: #fff;
+            width: 100%;
+            outline: none;
+            font-size: 0.95rem;
+            transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
+        }
+        .floating-input::placeholder { color: var(--text-muted); }
+        .floating-input:focus {
+            background: rgba(255, 255, 255, 0.16);
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent);
+        }
+        select option { background: #1a1250; color: #fff; }
+        input[type="date"], select { color-scheme: dark; }
+        input[type="file"]::file-selector-button {
+            background: color-mix(in srgb, var(--accent) 28%, transparent);
+            color: #fff; border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 8px;
+            padding: 6px 12px; margin-right: 12px; cursor: pointer; font-weight: 600;
+        }
+
+        /* ============ CLOCHE D'ALERTES ============ */
+        .bell-dot { position: absolute; top: 7px; right: 8px; width: 9px; height: 9px; border-radius: 9999px; background: var(--danger); box-shadow: 0 0 0 2px rgba(20, 16, 70, 0.95); }
+        .bell-badge { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 9999px; white-space: nowrap; }
+        .bell-badge-rupture { background: rgba(251, 113, 133, 0.18); color: #fb7185; }
+        .bell-badge-bas     { background: rgba(245, 158, 11, 0.18);  color: #f59e0b; }
+        .bell-menu { background: rgba(20, 16, 70, 0.96); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); }
+
+        /* ============ SIDEBAR RÉTRACTABLE ============ */
+        #sidebar { transition: width .3s cubic-bezier(.4, 0, .2, 1); }
+        .sidebar-text { white-space: nowrap; }
+        body.sidebar-collapsed #sidebar { width: 84px !important; }
+        body.sidebar-collapsed .sidebar-text { display: none; }
+        body.sidebar-collapsed .sidebar-logo-container,
+        body.sidebar-collapsed .sidebar-link,
+        body.sidebar-collapsed .toggle-btn-container,
+        body.sidebar-collapsed .profile-card { justify-content: center; }
+
+        /* ============ ANIMATIONS ============ */
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in-up { animation: fadeInUp .35s ease-out both; }
+        .stagger-1 { animation-delay: .05s; } .stagger-2 { animation-delay: .10s; }
+        .stagger-3 { animation-delay: .15s; } .stagger-4 { animation-delay: .20s; }
+        .flash-message { transition: opacity .4s ease, transform .4s ease; }
+        .flash-message.sortie { opacity: 0; transform: translateY(-8px); }
+        .flash-error   { border-color: rgba(251, 113, 133, 0.7); }
+        .flash-success { border-color: rgba(52, 211, 153, 0.7); }
+
+        /* ============ LUEURS DU FOND ============ */
+        .blob { position: absolute; border-radius: 9999px; filter: blur(90px); }
+        @keyframes drift { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(40px, -30px); } }
+        .blob-drift { animation: drift 24s ease-in-out infinite; }
+
+        @media (prefers-reduced-motion: reduce) {
+            .blob-drift, .animate-fade-in-up { animation: none; }
+            .glass-card-hover:hover { transform: none; }
+        }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.28); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+    </style>
+</head>
+
+<body class="min-h-screen flex flex-col relative overflow-x-hidden">
+
+    <!-- Configuration partagée avec toutes les pages (devise, taux, langue) -->
+    <script id="app-config" type="application/json">{{ {'devise': current_devise, 'tauxAr': taux_ar, 'tauxUsd': taux_usd, 'lang': current_lang}|tojson }}</script>
+
+    <!-- Lueurs lumineuses en arrière-plan -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div class="blob blob-drift w-[520px] h-[520px] -top-24 left-[28%]" style="background:#4f2bd9; opacity:.55;"></div>
+        <div class="blob blob-drift w-[460px] h-[460px] -bottom-32 right-[4%]" style="background:#2563eb; opacity:.50; animation-delay:-8s;"></div>
+        <div class="blob w-[300px] h-[300px] top-[45%] left-[-60px]" style="background:#7c3aed; opacity:.40;"></div>
+        <div class="blob w-[260px] h-[260px] top-[12%] right-[10%]" style="background:#22b8f0; opacity:.28;"></div>
+    </div>
+
+    <div class="flex h-screen overflow-hidden relative z-10 p-3 md:p-4 gap-4">
+
+        <!-- ================= SIDEBAR (ordinateur) ================= -->
+        <aside id="sidebar" class="w-64 glass-card hidden md:flex flex-col justify-between p-5 relative z-30">
+            <div class="space-y-5">
+                <!-- Logo -->
+                <div class="flex items-center gap-3 px-1 sidebar-logo-container">
+                    {% if logo_entreprise %}
+                        <img src="/{{ logo_entreprise }}" alt="Logo" class="w-10 h-10 rounded-xl object-contain flex-shrink-0 bg-white/10 p-1">
+                    {% else %}
+                        <div class="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg flex-shrink-0 brand-font"
+                             style="background:linear-gradient(135deg,var(--accent),var(--accent-2)); box-shadow:0 0 18px rgba(139,92,246,.45);">
+                            {{ nom_entreprise[:1]|upper }}
+                        </div>
+                    {% endif %}
+                    <div class="sidebar-text min-w-0">
+                        <h1 class="font-bold text-white text-base leading-tight truncate max-w-[9.5rem]">{{ nom_entreprise }}</h1>
+                        <p class="text-[13px] text-white/65">{{ t('entreprise') }}</p>
+                    </div>
+                </div>
+
+                <!-- Profil -->
+                <div class="glass-card profile-card flex items-center gap-3 p-3 rounded-2xl">
+                    <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 brand-font"
+                         style="background:linear-gradient(135deg,var(--accent),var(--accent-2));">
+                        {{ session.get('username', 'U')[:2]|upper }}
+                    </div>
+                    <div class="sidebar-text min-w-0">
+                        <p class="text-sm font-semibold text-white truncate">{{ session.get('username', 'Utilisateur') }}</p>
+                        <p class="text-[13px] text-white/75 flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full flex-shrink-0" style="background:var(--success);"></span>
+                            {{ session.get('role', 'user')|capitalize }} · {{ t('connecté') }}
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Navigation -->
+                <nav class="space-y-2 text-sm font-medium">
+                    <a href="{{ url_for('dashboard') }}" title="{{ t('dashboard') }}" class="sidebar-link flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition {% if request.endpoint == 'dashboard' %}nav-active{% endif %}">
+                        <i data-lucide="layout-dashboard" class="w-4 h-4 flex-shrink-0"></i><span class="sidebar-text">{{ t('dashboard') }}</span>
+                    </a>
+                    <a href="{{ url_for('ventes') }}" title="{{ t('ventes') }}" class="sidebar-link flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition {% if request.endpoint in ['ventes', 'nouvelle_vente', 'detail_vente'] %}nav-active{% endif %}">
+                        <i data-lucide="shopping-cart" class="w-4 h-4 flex-shrink-0"></i><span class="sidebar-text">{{ t('ventes') }}</span>
+                    </a>
+                    <a href="{{ url_for('produits') }}" title="{{ t('produits') }}" class="sidebar-link flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition {% if request.endpoint in ['produits', 'modifier_produit'] %}nav-active{% endif %}">
+                        <i data-lucide="package" class="w-4 h-4 flex-shrink-0"></i><span class="sidebar-text">{{ t('produits') }}</span>
+                    </a>
+                    <a href="{{ url_for('clients') }}" title="{{ t('clients') }}" class="sidebar-link flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition {% if request.endpoint in ['clients', 'modifier_client'] %}nav-active{% endif %}">
+                        <i data-lucide="users" class="w-4 h-4 flex-shrink-0"></i><span class="sidebar-text">{{ t('clients') }}</span>
+                    </a>
+                    <a href="{{ url_for('depenses') }}" title="{{ t('depenses') }}" class="sidebar-link flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition {% if request.endpoint == 'depenses' %}nav-active{% endif %}">
+                        <i data-lucide="credit-card" class="w-4 h-4 flex-shrink-0"></i><span class="sidebar-text">{{ t('depenses') }}</span>
+                    </a>
+                    <a href="{{ url_for('rapports') }}" title="{{ t('rapports') }}" class="sidebar-link flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition {% if request.endpoint == 'rapports' %}nav-active{% endif %}">
+                        <i data-lucide="trending-up" class="w-4 h-4 flex-shrink-0"></i><span class="sidebar-text">{{ t('rapports') }}</span>
+                    </a>
+                    {% if session.get('role') == 'admin' %}
+                    <a href="{{ url_for('parametres') }}" title="{{ t('parametres') }}" class="sidebar-link flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition {% if request.endpoint == 'parametres' %}nav-active{% endif %}">
+                        <i data-lucide="settings" class="w-4 h-4 flex-shrink-0"></i><span class="sidebar-text">{{ t('parametres') }}</span>
+                    </a>
+                    {% endif %}
+                </nav>
+            </div>
+
+            <div class="pt-4 space-y-2.5 border-t border-white/15">
+                <div class="toggle-btn-container flex items-center">
+                    <button type="button" onclick="toggleSidebar()" title="Réduire / étendre le menu" aria-label="Réduire ou étendre le menu"
+                            class="sidebar-link w-full flex items-center justify-center py-2 rounded-xl transition">
+                        <i data-lucide="chevron-left" id="toggle-icon" class="w-5 h-5 flex-shrink-0 transition-transform duration-300"></i>
+                    </button>
+                </div>
+                <a href="{{ url_for('logout') }}" title="{{ t('logout') }}"
+                   class="sidebar-link flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold transition" style="color:var(--danger);">
+                    <i data-lucide="log-out" class="w-4 h-4 flex-shrink-0"></i><span class="sidebar-text">{{ t('logout') }}</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- ================= CONTENU ================= -->
+        <div class="flex-1 flex flex-col overflow-y-auto gap-4 min-w-0">
+
+            <!-- En-tête flottant -->
+            <header class="glass-card px-4 md:px-7 py-3.5 flex justify-between items-center gap-3 sticky top-0 z-20">
+                <div class="flex items-center gap-3 min-w-0">
+                    <button type="button" id="mobile-menu-btn" class="md:hidden text-white p-1" aria-label="Ouvrir le menu">
+                        <i data-lucide="menu" class="w-6 h-6"></i>
+                    </button>
+                    <div class="min-w-0">
+                        <h2 class="text-lg md:text-xl font-bold text-white truncate">{% block header_title %}{{ t('dashboard') }}{% endblock %}</h2>
+                        <p class="text-[13px] text-white/70 truncate">
+                            Bienvenue, {{ session.get('username', '')|capitalize }} · <span id="date-du-jour"></span>
+                        </p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 md:gap-3">
+                    <!-- Cloche : produits en rupture ou sous le seuil -->
+                    <div class="relative" id="bell-wrapper">
+                        <button type="button" id="bell-btn" aria-label="Alertes de stock" aria-expanded="false"
+                                class="glass-card relative w-10 h-10 rounded-xl flex items-center justify-center text-white">
+                            <i data-lucide="bell" class="w-5 h-5"></i>
+                            {% if alertes_stock_count > 0 %}<span class="bell-dot"></span>{% endif %}
+                        </button>
+                        <div id="bell-menu" class="bell-menu hidden absolute right-0 top-full mt-2 w-72 rounded-2xl border border-white/25 shadow-2xl p-3 z-50">
+                            <p class="text-[13px] font-bold text-white px-2 pb-2 border-b border-white/15">
+                                Alertes de stock {% if alertes_stock_count > 0 %}({{ alertes_stock_count }}){% endif %}
+                            </p>
+                            {% for a in alertes_stock %}
+                            <a href="{{ url_for('produits') }}" class="flex items-center justify-between gap-2 px-2 py-2 rounded-lg hover:bg-white/10 transition">
+                                <span class="text-[13px] text-white truncate">{{ a.nom }}</span>
+                                <span class="bell-badge {% if a.stock == 0 %}bell-badge-rupture{% else %}bell-badge-bas{% endif %}">
+                                    {% if a.stock == 0 %}Rupture{% else %}Stock : {{ a.stock }}{% endif %}
+                                </span>
+                            </a>
+                            {% else %}
+                            <p class="text-[13px] text-white/80 px-2 py-4 text-center">Tous les stocks sont corrects.</p>
+                            {% endfor %}
+                            {% if alertes_stock_count > 0 %}
+                            <a href="{{ url_for('produits') }}" class="block text-center text-[13px] font-semibold pt-2 mt-1 border-t border-white/15" style="color:var(--accent);">Gérer le stock →</a>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <select id="lang-select" onchange="changerLangueSelectionnee(this.value)" aria-label="Langue"
+                            class="glass-card px-3 py-2 rounded-xl text-sm font-semibold text-white outline-none cursor-pointer">
+                        <option value="fr" {% if current_lang == 'fr' %}selected{% endif %}>FR</option>
+                        <option value="en" {% if current_lang == 'en' %}selected{% endif %}>EN</option>
+                    </select>
+                    <select id="devise-select" onchange="changerDeviseSelectionnee(this.value)" aria-label="Devise"
+                            class="glass-card px-3 py-2 rounded-xl text-sm font-semibold text-white outline-none cursor-pointer">
+                        <option value="Ar" {% if current_devise == 'Ar' %}selected{% endif %}>Ariary (Ar)</option>
+                        <option value="€" {% if current_devise == '€' %}selected{% endif %}>Euro (€)</option>
+                        <option value="$" {% if current_devise == '$' %}selected{% endif %}>Dollar ($)</option>
+                    </select>
+                </div>
+            </header>
+
+            <!-- Menu mobile -->
+            <div id="mobile-sidebar" class="fixed inset-0 z-50 hidden flex-col p-6 space-y-6 md:hidden"
+                 style="background:rgba(11,11,46,.94); backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px);">
+                <div class="flex justify-between items-center border-b border-white/15 pb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg brand-font"
+                             style="background:linear-gradient(135deg,var(--accent),var(--accent-2));">{{ nom_entreprise[:1]|upper }}</div>
+                        <div>
+                            <h1 class="font-bold text-white text-sm">{{ nom_entreprise }}</h1>
+                            <p class="text-[13px] text-white/65">{{ t('menu') }}</p>
+                        </div>
+                    </div>
+                    <button type="button" id="mobile-menu-close" class="text-white" aria-label="Fermer le menu"><i data-lucide="x" class="w-6 h-6"></i></button>
+                </div>
+                <nav class="space-y-2 text-base font-medium">
+                    <a href="{{ url_for('dashboard') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-xl {% if request.endpoint == 'dashboard' %}nav-active{% endif %}"><i data-lucide="layout-dashboard" class="w-5 h-5"></i> {{ t('dashboard') }}</a>
+                    <a href="{{ url_for('ventes') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-xl {% if request.endpoint in ['ventes', 'nouvelle_vente', 'detail_vente'] %}nav-active{% endif %}"><i data-lucide="shopping-cart" class="w-5 h-5"></i> {{ t('ventes') }}</a>
+                    <a href="{{ url_for('produits') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-xl {% if request.endpoint in ['produits', 'modifier_produit'] %}nav-active{% endif %}"><i data-lucide="package" class="w-5 h-5"></i> {{ t('produits') }}</a>
+                    <a href="{{ url_for('clients') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-xl {% if request.endpoint in ['clients', 'modifier_client'] %}nav-active{% endif %}"><i data-lucide="users" class="w-5 h-5"></i> {{ t('clients') }}</a>
+                    <a href="{{ url_for('depenses') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-xl {% if request.endpoint == 'depenses' %}nav-active{% endif %}"><i data-lucide="credit-card" class="w-5 h-5"></i> {{ t('depenses') }}</a>
+                    <a href="{{ url_for('rapports') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-xl {% if request.endpoint == 'rapports' %}nav-active{% endif %}"><i data-lucide="trending-up" class="w-5 h-5"></i> {{ t('rapports') }}</a>
+                    {% if session.get('role') == 'admin' %}
+                    <a href="{{ url_for('parametres') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-xl {% if request.endpoint == 'parametres' %}nav-active{% endif %}"><i data-lucide="settings" class="w-5 h-5"></i> {{ t('parametres') }}</a>
+                    {% endif %}
+                </nav>
+                <div class="pt-4 border-t border-white/15 mt-auto">
+                    <a href="{{ url_for('logout') }}" class="sidebar-link flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-semibold" style="color:var(--danger);">
+                        <i data-lucide="log-out" class="w-4 h-4"></i> {{ t('logout') }}
+                    </a>
+                </div>
+            </div>
+
+            <!-- Messages flash (disparaissent seuls après 5 s) -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="space-y-2" id="flash-zone">
+                        {% for category, message in messages %}
+                            <div class="glass-card flash-message {% if category == 'error' %}flash-error{% else %}flash-success{% endif %} p-4 text-sm font-semibold flex items-center justify-between animate-fade-in-up" role="status">
+                                <span class="flex items-center gap-2">
+                                    {% if category == 'error' %}
+                                        <i data-lucide="alert-circle" class="w-4 h-4" style="color:var(--danger);"></i>
+                                    {% else %}
+                                        <i data-lucide="check-circle-2" class="w-4 h-4" style="color:var(--success);"></i>
+                                    {% endif %}
+                                    {{ message }}
+                                </span>
+                                <button type="button" onclick="fermerFlash(this.parentElement)" class="text-white/70 hover:text-white text-lg leading-none" aria-label="Fermer">&times;</button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <main class="flex-1 pb-4">
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+
+    <script>
+        /* ===== APP : devise, taux de change et formats, partagés par toutes les pages ===== */
+        const APP = (function () {
+            const cfg = JSON.parse(document.getElementById('app-config').textContent);
+            const TAUX = { 'Ar': cfg.tauxAr, '$': cfg.tauxUsd, '€': 1 };
+
+            function nettoyer(txt) { return txt.replace(/\u202f/g, ' ').replace(/\u00a0/g, ' '); }
+            function taux() { return TAUX[cfg.devise] || 1; }
+            function convertir(valeurEur) { return valeurEur * taux(); }
+
+            // 2 510 500  (Ariary, sans décimales)  |  1 250,50  (Euro, Dollar)
+            function formaterNombre(v) {
+                const opts = cfg.devise === 'Ar' ? { maximumFractionDigits: 0 } : { minimumFractionDigits: 2, maximumFractionDigits: 2 };
+                return nettoyer(v.toLocaleString('fr-FR', opts));
+            }
+            // 704,0 -> "704"   19,5 -> "19,5"
+            function abreger(valeur, suffixe) {
+                return valeur.toFixed(1).replace('.', ',').replace(/,0$/, '') + ' ' + suffixe;
+            }
+            // Cartes : 19,5 M  (les petites valeurs restent complètes)
+            function compact(v) {
+                const a = Math.abs(v);
+                if (a >= 1e9) return abreger(v / 1e9, 'Md');
+                if (a >= 1e6) return abreger(v / 1e6, 'M');
+                return formaterNombre(v);
+            }
+            // Axes des graphiques : 500 k, 1,5 M
+            function axe(v) {
+                const a = Math.abs(v);
+                if (a >= 1e9) return abreger(v / 1e9, 'Md');
+                if (a >= 1e6) return abreger(v / 1e6, 'M');
+                if (a >= 1e3) return Math.round(v / 1e3) + ' k';
+                return String(Math.round(v));
+            }
+            function hexToRgba(hex, alpha) {
+                const h = hex.replace('#', '');
+                const full = h.length === 3 ? h.split('').map(c => c + c).join('') : h;
+                const n = parseInt(full, 16);
+                return 'rgba(' + ((n >> 16) & 255) + ', ' + ((n >> 8) & 255) + ', ' + (n & 255) + ', ' + alpha + ')';
+            }
+            function couleur(nom, defaut) {
+                return (getComputedStyle(document.documentElement).getPropertyValue(nom) || defaut).trim();
+            }
+            // <span class="montant-convertible" data-base="..."> + <span class="devise-symbole"> : montant complet
+            // <span class="montant-compact" data-base="...">                                      : montant abrégé + devise
+            function appliquerMontants(racine) {
+                const zone = racine || document;
+                zone.querySelectorAll('.montant-convertible').forEach(function (el) {
+                    const base = parseFloat(el.dataset.base);
+                    if (isNaN(base)) return;
+                    el.textContent = formaterNombre(convertir(base));
+                    const sym = el.parentElement.querySelector('.devise-symbole');
+                    if (sym) sym.textContent = cfg.devise;
+                });
+                zone.querySelectorAll('.montant-compact').forEach(function (el) {
+                    const base = parseFloat(el.dataset.base);
+                    if (isNaN(base)) return;
+                    el.textContent = compact(convertir(base)) + ' ' + cfg.devise;
+                });
+            }
+            return {
+                devise: cfg.devise, lang: cfg.lang,
+                taux: taux, convertir: convertir, formaterNombre: formaterNombre, compact: compact, axe: axe,
+                nettoyer: nettoyer, hexToRgba: hexToRgba, couleur: couleur, appliquerMontants: appliquerMontants
+            };
+        })();
+
+        // Compatibilité avec les pages qui lisent DEVISE ou formatMontantCompact
+        window.DEVISE = APP.devise;
+        window.formatMontantCompact = function (v) { return APP.compact(v) + ' ' + APP.devise; };
+
+        /* ===== Interface ===== */
+        function toggleSidebar() {
+            const collapsed = document.body.classList.toggle('sidebar-collapsed');
+            document.getElementById('toggle-icon').style.transform = collapsed ? 'rotate(180deg)' : 'rotate(0deg)';
+            try { localStorage.setItem('sidebarCollapsed', collapsed ? '1' : '0'); } catch (e) {}
+        }
+        function openModal(id) {
+            const modal = document.getElementById(id);
+            if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
+        }
+        function closeModal(id) {
+            const modal = document.getElementById(id);
+            if (modal) { modal.classList.remove('flex'); modal.classList.add('hidden'); }
+        }
+        function fermerFlash(el) {
+            if (!el) return;
+            el.classList.add('sortie');
+            setTimeout(function () { el.remove(); }, 400);
+        }
+        function changerDeviseSelectionnee(devise) {
+            fetch('/changer-devise/' + encodeURIComponent(devise), { method: 'POST' }).then(function () { location.reload(); });
+        }
+        function changerLangueSelectionnee(lang) {
+            fetch('/changer-langue/' + encodeURIComponent(lang), { method: 'POST' }).then(function () { location.reload(); });
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+
+            // Date du jour dans l'en-tête
+            const dateEl = document.getElementById('date-du-jour');
+            if (dateEl) {
+                const d = new Date().toLocaleDateString(APP.lang === 'en' ? 'en-GB' : 'fr-FR',
+                    { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+                dateEl.textContent = d.charAt(0).toUpperCase() + d.slice(1);
+            }
+
+            // Menu mobile
+            const mobile = document.getElementById('mobile-sidebar');
+            const ouvrir = document.getElementById('mobile-menu-btn');
+            const fermer = document.getElementById('mobile-menu-close');
+            if (ouvrir && mobile) ouvrir.addEventListener('click', function () { mobile.classList.remove('hidden'); mobile.classList.add('flex'); });
+            if (fermer && mobile) fermer.addEventListener('click', function () { mobile.classList.remove('flex'); mobile.classList.add('hidden'); });
+
+            // Cloche : ouverture, clic à l'extérieur, touche Échap
+            const bellBtn = document.getElementById('bell-btn');
+            const bellMenu = document.getElementById('bell-menu');
+            function fermerCloche() { bellMenu.classList.add('hidden'); bellBtn.setAttribute('aria-expanded', 'false'); }
+            if (bellBtn && bellMenu) {
+                bellBtn.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    const ouvert = bellMenu.classList.toggle('hidden') === false;
+                    bellBtn.setAttribute('aria-expanded', ouvert ? 'true' : 'false');
+                });
+                document.addEventListener('click', function (e) { if (!bellMenu.contains(e.target)) fermerCloche(); });
+                document.addEventListener('keydown', function (e) { if (e.key === 'Escape') fermerCloche(); });
+            }
+
+            // Sidebar : état mémorisé
+            try {
+                if (localStorage.getItem('sidebarCollapsed') === '1') {
+                    document.body.classList.add('sidebar-collapsed');
+                    const icon = document.getElementById('toggle-icon');
+                    if (icon) icon.style.transform = 'rotate(180deg)';
+                }
+            } catch (e) {}
+
+            // Messages flash : disparition automatique (les erreurs restent 8 s)
+            document.querySelectorAll('.flash-message').forEach(function (el) {
+                setTimeout(function () { fermerFlash(el); }, el.classList.contains('flash-error') ? 8000 : 5000);
+            });
+        });
+    </script>
+</body>
+</html>

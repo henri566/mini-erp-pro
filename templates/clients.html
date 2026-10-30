@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block page_title %}Clients - Mini-ERP Pro{% endblock %}
+{% block header_title %}Gestion des Clients{% endblock %}
+
+{% block content %}
+<div class="w-full space-y-8 animate-fade-in-up stagger-1">
+    
+    <!-- En-tête de page -->
+    <div class="glass-card p-6 rounded-2xl flex flex-col md:flex-row justify-between items-center gap-4">
+        <div>
+            <h2 class="text-xl font-bold text-slate-100 flex items-center gap-2.5">
+                <i data-lucide="users" class="w-5 h-5 text-sky-400"></i> Répertoire des Clients
+            </h2>
+            <p class="text-[13px] text-slate-300 mt-1">Consultez et gérez vos clients et leurs coordonnées.</p>
+        </div>
+        <button onclick="openModal('addClientModal')" class="btn-cyan-primary px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2">
+            <i data-lucide="user-plus" class="w-4 h-4"></i> Ajouter un Client
+        </button>
+    </div>
+
+    <!-- 3 Cartes de Résumé -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <div class="glass-card p-6 rounded-2xl space-y-3">
+            <span class="text-[13px] text-slate-200 font-medium">Total Clients</span>
+            <h3 class="text-2xl font-bold text-slate-100">{{ clients|length }}</h3>
+            <p class="text-[13px] text-slate-300">Clients enregistrés</p>
+        </div>
+        <div class="glass-card p-6 rounded-2xl space-y-3">
+            <span class="text-[13px] text-slate-200 font-medium">Clients Actifs</span>
+            <h3 class="text-2xl font-bold text-emerald-400">{{ clients|length }}</h3>
+            <p class="text-[13px] text-slate-300">Comptes valides</p>
+        </div>
+        <div class="glass-card p-6 rounded-2xl space-y-3">
+            <span class="text-[13px] text-slate-200 font-medium">Dernier Ajout</span>
+            <h3 class="text-2xl font-bold text-sky-400">{% if clients %}{{ clients[-1].nom[:12] }}{% else %}Aucun{% endif %}</h3>
+            <p class="text-[13px] text-slate-300">Dernier client inscrit</p>
+        </div>
+    </div>
+
+    <!-- Barre de recherche -->
+    <div class="glass-card p-4 rounded-2xl flex items-center justify-between gap-4">
+        <form method="GET" action="{{ url_for('clients') }}" class="flex items-center gap-3 w-full max-w-md">
+            <div class="relative w-full">
+                <input type="text" name="q" value="{{ recherche }}" placeholder="Rechercher un client..." class="floating-input pl-10 text-[13px]">
+                <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-3.5"></i>
+            </div>
+            <button type="submit" class="btn-cyan-primary px-4 py-2.5 rounded-xl text-xs font-semibold flex-shrink-0">Rechercher</button>
+        </form>
+    </div>
+
+    <!-- Tableau -->
+    <div class="glass-card rounded-2xl overflow-hidden shadow-2xl">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="border-b border-sky-500/20 text-xs uppercase tracking-wider">
+                        <th class="p-4">Client</th>
+                        <th class="p-4">Email</th>
+                        <th class="p-4">Téléphone</th>
+                        <th class="p-4 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5 text-sm">
+                    {% for c in clients %}
+                    <tr class="hover:bg-sky-500/5 transition">
+                        <td class="p-4 flex items-center gap-3">
+                            {% set colors = ['bg-sky-500/20 text-sky-400 border-sky-500/30', 'bg-violet-500/20 text-violet-400 border-violet-500/30', 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30', 'bg-amber-500/20 text-amber-400 border-amber-500/30', 'bg-pink-500/20 text-pink-400 border-pink-500/30'] %}
+                            {% set color_class = colors[c.id % colors|length] %}
+                            <div class="w-10 h-10 rounded-xl {{ color_class }} border flex items-center justify-center font-bold text-sm flex-shrink-0">
+                                {{ c.nom[:2]|upper }}
+                            </div>
+                            <div>
+                                <span class="font-semibold text-slate-100">{{ c.nom }}</span>
+                                <p class="text-[13px] text-slate-300">ID : #{{ c.id }}</p>
+                            </div>
+                        </td>
+                        <td class="p-4 text-[13px] text-slate-200">{{ c.email or 'Non renseigné' }}</td>
+                        <td class="p-4 text-[13px] text-slate-200">{{ c.telephone or 'Non renseigné' }}</td>
+                        <td class="p-4 text-right space-x-2">
+                            <a href="{{ url_for('modifier_client', client_id=c.id) }}" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-sky-500/10 text-sky-400 hover:bg-sky-500/20 text-xs font-medium transition">
+                                <i data-lucide="edit-3" class="w-3.5 h-3.5"></i> Modifier
+                            </a>
+                            <form action="{{ url_for('supprimer_client', client_id=c.id) }}" method="POST" class="inline-block" onsubmit="confirmDelete(event, this)">
+                                <button type="submit" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 text-xs font-medium transition">
+                                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Supprimer
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="p-12 text-center">
+                            <div class="flex flex-col items-center justify-center space-y-3">
+                                <div class="w-16 h-16 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20 flex items-center justify-center">
+                                    <i data-lucide="users" class="w-8 h-8"></i>
+                                </div>
+                                <h3 class="text-base font-bold text-slate-200">Aucun client enregistré</h3>
+                                <p class="text-[13px] text-slate-300 max-w-sm">Ajoutez votre premier client pour commencer à associer des factures.</p>
+                                <button onclick="openModal('addClientModal')" class="btn-cyan-primary px-4 py-2 rounded-xl text-xs font-semibold mt-2">
+                                    Ajouter le premier client
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- MODALE -->
+<div id="addClientModal" class="fixed inset-0 bg-black/60 backdrop-blur-md hidden items-center justify-center z-50 p-4">
+    <div class="glass-card p-6 rounded-2xl w-full max-w-md space-y-6 animate-fade-in-up">
+        <div class="flex justify-between items-center border-b border-white/10 pb-4">
+            <h3 class="text-base font-bold text-slate-100 flex items-center gap-2">
+                <i data-lucide="user-plus" class="w-5 h-5 text-sky-400"></i> Ajouter un client
+            </h3>
+            <button onclick="closeModal('addClientModal')" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+        <form action="{{ url_for('ajouter_client') }}" method="POST" class="space-y-4">
+            <div class="floating-group">
+                <input type="text" name="nom" required placeholder=" " class="floating-input text-[13px]">
+                <label class="floating-label">Nom du client</label>
+            </div>
+            <div class="floating-group">
+                <input type="email" name="email" placeholder=" " class="floating-input text-[13px]">
+                <label class="floating-label">Adresse email</label>
+            </div>
+            <div class="floating-group">
+                <input type="text" name="telephone" placeholder=" " class="floating-input text-[13px]">
+                <label class="floating-label">Numéro de téléphone</label>
+            </div>
+            <div class="flex justify-end gap-3 pt-4 border-t border-white/10">
+                <button type="button" onclick="closeModal('addClientModal')" class="glass-card hover:bg-white/10 px-4 py-2.5 rounded-xl text-xs transition text-slate-300">Annuler</button>
+                <button type="submit" class="btn-cyan-primary px-5 py-2.5 rounded-xl text-xs font-semibold">Enregistrer</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
