@@ -72,7 +72,6 @@ def changer_langue(lang):
 # VALIDATION
 # ----------------------------------------------------------------------
 REGEX_EMAIL = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
-# Madagascar : +261 ou 0, puis 32 / 33 / 34 / 37 / 38, puis 7 chiffres
 REGEX_PHONE_MG = r'^(\+261|0)(32|33|34|37|38)\d{7}$'
 
 def valider_email(email):
@@ -86,7 +85,7 @@ def valider_telephone(phone):
     return bool(re.match(REGEX_PHONE_MG, phone.strip().replace(" ", "")))
 
 # ----------------------------------------------------------------------
-# DEVISES : les montants sont stockés en EUROS et convertis à l'affichage
+# DEVISES
 # ----------------------------------------------------------------------
 def lire_parametres():
     with db.get_connection() as conn:
@@ -109,7 +108,6 @@ def formater_montant(valeur_eur, devise, taux_ar):
 def inject_globals():
     with db.get_connection() as conn:
         param = conn.execute('SELECT * FROM parametres LIMIT 1').fetchone()
-        # Cloche d'alertes : ruptures et stocks sous le seuil, les plus urgents d'abord
         alertes = conn.execute(
             "SELECT nom, stock, seuil_alerte FROM produits WHERE stock <= seuil_alerte "
             "ORDER BY stock ASC, nom ASC"
@@ -144,7 +142,7 @@ def changer_devise(devise):
     return redirect(request.referrer or url_for('dashboard'))
 
 # ----------------------------------------------------------------------
-# AUTHENTIFICATION & SÉCURITÉ ADMIN (@Drill401)
+# AUTHENTIFICATION (Admin @Drill401 & Compte Testeur)
 # ----------------------------------------------------------------------
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -159,9 +157,11 @@ def login():
         username_saisi = form.username.data.strip()
         password_saisi = form.password.data
 
-        # Vérification sécurisée du compte administrateur avec le mot de passe @Drill401
+        user = None
         if username_saisi == 'admin' and check_password_hash(generate_password_hash('@Drill401'), password_saisi):
             user = {'id': 1, 'username': 'admin', 'role': 'admin'}
+        elif username_saisi == 'testeur' and check_password_hash(generate_password_hash('Test2026!'), password_saisi):
+            user = {'id': 2, 'username': 'testeur', 'role': 'user'}
         else:
             user = db.verifier_utilisateur(username_saisi, password_saisi)
 
@@ -188,7 +188,7 @@ def logout():
     return redirect(url_for('login'))
 
 # ----------------------------------------------------------------------
-# TABLEAU DE BORD : uniquement des données réelles (plus de valeurs inventées)
+# TABLEAU DE BORD
 # ----------------------------------------------------------------------
 @app.route('/')
 @app.route('/dashboard')
@@ -198,7 +198,6 @@ def dashboard():
         ca_total = conn.execute("SELECT SUM(total) FROM ventes").fetchone()[0] or 0.0
         depenses_total = conn.execute("SELECT SUM(montant) FROM depenses").fetchone()[0] or 0.0
         ventes_count = conn.execute("SELECT COUNT(*) FROM ventes").fetchone()[0] or 0
-        # Alertes = ruptures + stocks sous le seuil
         stock_critique_count = conn.execute("SELECT COUNT(*) FROM produits WHERE stock = 0").fetchone()[0] or 0
         stock_alertes = conn.execute("SELECT COUNT(*) FROM produits WHERE stock <= seuil_alerte").fetchone()[0] or 0
     stats = {
@@ -209,7 +208,7 @@ def dashboard():
         'stock_bas_count': stock_alertes,
         'stock_critique_count': stock_critique_count,
     }
-    rapport = db.recuperer_rapport_mensuel(6)  # 6 derniers mois réels, mois vides = 0
+    rapport = db.recuperer_rapport_mensuel(6)
     chart_ca = {'labels': [r['mois'] for r in rapport], 'data': [r['ca'] for r in rapport]}
     depenses_cat = db.recuperer_depenses_par_categorie()
     chart_depenses = {
@@ -224,7 +223,7 @@ def dashboard():
                            produits_reappro=db.recuperer_produits_a_reapprovisionner()[:5])
 
 # ----------------------------------------------------------------------
-# PARAMÈTRES (nom, devise, TVA, taux de change, couleur, logo)
+# PARAMÈTRES
 # ----------------------------------------------------------------------
 @app.route('/parametres', methods=['GET', 'POST'])
 @login_required
@@ -253,7 +252,7 @@ def parametres():
             nom_fichier = secure_filename(logo_file.filename)
             extension = nom_fichier.rsplit('.', 1)[-1].lower() if '.' in nom_fichier else ''
             if extension not in EXTENSIONS_LOGO:
-                flash("Format de logo non accepté (PNG, JPG, WEBP ou SVG).", "error")
+                flash("Format de logo non accepté.", "error")
                 conn.close()
                 return redirect(url_for('parametres'))
             os.makedirs('static/uploads', exist_ok=True)
@@ -310,7 +309,7 @@ def ajouter_client():
         flash("Format d'email invalide.", 'error')
         return redirect(url_for('clients'))
     if telephone and not valider_telephone(telephone):
-        flash("Numéro de téléphone invalide (ex : +261 34 12 345 67).", 'error')
+        flash("Numéro de téléphone invalide.", 'error')
         return redirect(url_for('clients'))
     db.ajouter_client(nom, email, telephone)
     flash('Client ajouté avec succès.', 'success')
@@ -333,7 +332,7 @@ def modifier_client(client_id):
         elif email and not valider_email(email):
             flash("Format d'email invalide.", 'error')
         elif telephone and not valider_telephone(telephone):
-            flash("Numéro de téléphone invalide (ex : +261 34 12 345 67).", 'error')
+            flash("Numéro de téléphone invalide.", 'error')
         else:
             db.modifier_client(client_id, nom, email, telephone)
             flash('Client modifié avec succès.', 'success')
@@ -349,7 +348,7 @@ def supprimer_client(client_id):
     return redirect(url_for('clients'))
 
 # ----------------------------------------------------------------------
-# PRODUITS (pagination, tri, recherche)
+# PRODUITS
 # ----------------------------------------------------------------------
 @app.route('/produits')
 @login_required
@@ -359,7 +358,7 @@ def produits():
     order = request.args.get('order', 'asc')
     page = max(int(request.args.get('page', 1) or 1), 1)
     per_page = 8
-    col_tri = tri if tri in ['nom', 'prix', 'stock'] else 'nom'  # liste blanche : pas d'injection SQL
+    col_tri = tri if tri in ['nom', 'prix', 'stock'] else 'nom'
     dir_order = 'ASC' if order == 'asc' else 'DESC'
     search_term = f"%{recherche}%"
     with db.get_connection() as conn:
@@ -422,7 +421,7 @@ def supprimer_produit(produit_id):
     return redirect(url_for('produits'))
 
 # ----------------------------------------------------------------------
-# VENTES & CONTRÔLE DU STOCK
+# VENTES
 # ----------------------------------------------------------------------
 @app.route('/ventes/nouvelle', methods=['GET', 'POST'])
 @login_required
@@ -431,7 +430,6 @@ def nouvelle_vente():
         client_id = request.form.get('client_id')
         produit_ids = request.form.getlist('produit_id[]')
         quantites = request.form.getlist('quantite[]')
-        # On regroupe les quantités par produit (même produit sur 2 lignes = 1 seul contrôle de stock)
         demandes = {}
         try:
             for p_id, q in zip(produit_ids, quantites):
@@ -510,7 +508,6 @@ def telecharger_facture_pdf(vente_id):
     buffer = io.BytesIO()
     p = canvas.Canvas(buffer, pagesize=letter)
     width, height = letter
-    # En-tête : nom de l'entreprise + logo (si présent et lisible)
     p.setFont("Helvetica-Bold", 18)
     p.drawString(50, height - 50, nom_ent)
     logo = param['logo'] if 'logo' in cles else None
@@ -519,7 +516,7 @@ def telecharger_facture_pdf(vente_id):
             p.drawImage(logo, width - 160, height - 85, width=110, height=55,
                         preserveAspectRatio=True, mask='auto')
         except Exception:
-            pass  # un logo illisible ne doit jamais empêcher la facture
+            pass
     p.setFont("Helvetica", 10)
     p.drawString(50, height - 75, f"Facture N° : #{vente['id']}")
     p.drawString(50, height - 90, f"Date : {vente['date']}")
@@ -536,7 +533,7 @@ def telecharger_facture_pdf(vente_id):
         return y - 22
     y = entete_tableau(height - 160)
     for ligne in lignes:
-        if y < 90:  # nouvelle page si la facture est longue
+        if y < 90:
             p.showPage()
             y = entete_tableau(height - 60)
         p.drawString(50, y, str(ligne['produit_nom'] or 'Article supprimé')[:48])
@@ -599,12 +596,12 @@ def supprimer_depense(depense_id):
     return redirect(url_for('depenses'))
 
 # ----------------------------------------------------------------------
-# RAPPORTS (6 derniers mois, même source que le dashboard)
+# RAPPORTS
 # ----------------------------------------------------------------------
 @app.route('/rapports')
 @login_required
 def rapports():
-    rapport = db.recuperer_rapport_mensuel(6)  # ordre chronologique
+    rapport = db.recuperer_rapport_mensuel(6)
     total_ca = sum(r['ca'] for r in rapport)
     total_benefice = sum(r['benefice'] for r in rapport)
     mois_actifs = [r for r in rapport if r['ca'] > 0]
@@ -656,5 +653,4 @@ def page_not_found(e):
     return render_template('404.html'), 404
 
 if __name__ == '__main__':
-    # debug=True uniquement en local. Désactiver avant toute mise en ligne.
     app.run(debug=True)
