@@ -1,8 +1,6 @@
 {% extends "base.html" %}
-
-{% block page_title %}Dépenses - Mini-ERP Pro{% endblock %}
-{% block header_title %}Gestion des Dépenses & Charges{% endblock %}
-
+{% block page_title %}{{ t('depenses') if t('depenses') else 'Dépenses' }} - Mini-ERP Pro{% endblock %}
+{% block header_title %}{{ t('expenses_management') if t('expenses_management') else 'Gestion des Dépenses & Charges' }}{% endblock %}
 {% block content %}
 <div class="w-full space-y-8 animate-fade-in-up stagger-1">
     
@@ -11,21 +9,24 @@
         <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-pink-500/15 rounded-full blur-2xl pointer-events-none"></div>
         <div>
             <h2 class="text-xl font-bold text-slate-100 flex items-center gap-2.5">
-                <i data-lucide="credit-card" class="w-5 h-5 text-rose-400"></i> Suivi des Dépenses
+                <i data-lucide="credit-card" class="w-5 h-5 text-rose-400"></i> {{ 'Expense Tracking' if current_lang == 'en' else 'Suivi des Dépenses' }}
             </h2>
-            <p class="text-[13px] text-slate-300 mt-1">Enregistrez et suivez les charges et dépenses opérationnelles de votre entreprise.</p>
+            <p class="text-[13px] text-slate-300 mt-1">
+                {{ 'Record and track your business operational charges and expenses.' if current_lang == 'en' else 'Enregistrez et suivez les charges et dépenses opérationnelles de votre entreprise.' }}
+            </p>
         </div>
         <button onclick="openModal('addDepenseModal')" class="btn-cyan-primary px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 relative z-10">
-            <i data-lucide="plus-circle" class="w-4 h-4"></i> Nouvelle Dépense
+            <i data-lucide="plus-circle" class="w-4 h-4"></i> {{ 'New Expense' if current_lang == 'en' else 'Nouvelle Dépense' }}
         </button>
     </div>
-
     <!-- Cartes de Résumé Dépenses (Total, Dépense moyenne, Plus grosse catégorie) -->
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <!-- Carte 1 : Total -->
         <div class="glass-card p-6 rounded-2xl space-y-3 relative overflow-hidden">
             <div class="absolute -right-6 -top-6 w-24 h-24 bg-rose-500/10 rounded-full blur-xl pointer-events-none"></div>
-            <span class="text-[13px] text-slate-200 font-medium">Total des Dépenses</span>
+            <span class="text-[13px] text-slate-200 font-medium">
+                {{ 'Total Expenses' if current_lang == 'en' else 'Total des Dépenses' }}
+            </span>
             {% set total_dep = namespace(val=0) %}
             {% for d in depenses %}
                 {% set total_dep.val = total_dep.val + d.montant %}
@@ -33,16 +34,21 @@
             <h3 class="text-2xl font-bold text-rose-400">
                 <span class="montant-convertible" data-base="{{ total_dep.val }}">{{ "%.2f"|format(total_dep.val) }}</span> <span class="devise-symbole">€</span>
             </h3>
-            <p class="text-[13px] text-slate-300">Somme globale de toutes les charges enregistrées</p>
+            <p class="text-[13px] text-slate-300">
+                {{ 'Global sum of all recorded charges' if current_lang == 'en' else 'Somme globale de toutes les charges enregistrées' }}
+            </p>
         </div>
-
         <!-- Carte 2 : Moyenne & Plus grosse catégorie -->
         <div class="glass-card p-6 rounded-2xl space-y-3 relative overflow-hidden">
             <div class="absolute -right-6 -top-6 w-24 h-24 bg-violet-500/10 rounded-full blur-xl pointer-events-none"></div>
-            <span class="text-[13px] text-slate-200 font-medium">Indicateurs Clés</span>
+            <span class="text-[13px] text-slate-200 font-medium">
+                {{ 'Key Indicators' if current_lang == 'en' else 'Indicateurs Clés' }}
+            </span>
             <div class="grid grid-cols-2 gap-4 pt-1">
                 <div>
-                    <p class="text-[11px] text-slate-400">Dépense Moyenne</p>
+                    <p class="text-[11px] text-slate-400">
+                        {{ 'Average Expense' if current_lang == 'en' else 'Dépense Moyenne' }}
+                    </p>
                     {% set nb_dep = depenses|length %}
                     {% set dep_moy = (total_dep.val / nb_dep) if nb_dep > 0 else 0 %}
                     <p class="text-lg font-bold text-slate-100">
@@ -50,7 +56,9 @@
                     </p>
                 </div>
                 <div>
-                    <p class="text-[11px] text-slate-400">Plus Grosse Catégorie</p>
+                    <p class="text-[11px] text-slate-400">
+                        {{ 'Largest Category' if current_lang == 'en' else 'Plus Grosse Catégorie' }}
+                    </p>
                     {% set cats = {} %}
                     {% for d in depenses %}
                         {% if d.categorie in cats %}
@@ -59,7 +67,7 @@
                             {% set _ = cats.update({d.categorie: d.montant}) %}
                         {% endif %}
                     {% endfor %}
-                    {% set max_cat = namespace(nom='Aucune', val=0) %}
+                    {% set max_cat = namespace(nom=('None' if current_lang == 'en' else 'Aucune'), val=0) %}
                     {% for cat, val in cats.items() %}
                         {% if val > max_cat.val %}
                             {% set max_cat.val = val %}
@@ -69,21 +77,22 @@
                     <p class="text-lg font-bold text-violet-400 truncate">{{ max_cat.nom }}</p>
                 </div>
             </div>
-            <p class="text-[13px] text-slate-300">Analyse de répartition des charges</p>
+            <p class="text-[13px] text-slate-300">
+                {{ 'Charge distribution analysis' if current_lang == 'en' else 'Analyse de répartition des charges' }}
+            </p>
         </div>
     </div>
-
     <!-- Tableau -->
     <div class="glass-card rounded-2xl overflow-hidden shadow-2xl">
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
                 <thead>
                     <tr class="border-b border-white/10 text-xs uppercase tracking-wider text-slate-400">
-                        <th class="p-4">Description</th>
-                        <th class="p-4">Catégorie</th>
-                        <th class="p-4">Date</th>
-                        <th class="p-4">Montant</th>
-                        <th class="p-4 text-right">Actions</th>
+                        <th class="p-4">{{ 'Description' if current_lang == 'en' else 'Description' }}</th>
+                        <th class="p-4">{{ 'Category' if current_lang == 'en' else 'Catégorie' }}</th>
+                        <th class="p-4">{{ 'Date' if current_lang == 'en' else 'Date' }}</th>
+                        <th class="p-4">{{ 'Amount' if current_lang == 'en' else 'Montant' }}</th>
+                        <th class="p-4 text-right">{{ 'Actions' if current_lang == 'en' else 'Actions' }}</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-white/5 text-sm">
@@ -107,12 +116,12 @@
                                     data-description="{{ d.description }}"
                                     data-categorie="{{ d.categorie }}"
                                     data-montant="{{ d.montant }}">
-                                <i data-lucide="edit-3" class="w-3.5 h-3.5"></i> Modifier
+                                <i data-lucide="edit-3" class="w-3.5 h-3.5"></i> {{ 'Edit' if current_lang == 'en' else 'Modifier' }}
                             </button>
                             <!-- BOUTON SUPPRIMER AVEC MODALE EN VERRE -->
                             <form action="{{ url_for('supprimer_depense', depense_id=d.id) }}" method="POST" class="inline-block">
                                 <button type="button" onclick="demanderConfirmationSuppression(this.form, '{{ d.description|e }}')" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 text-xs font-medium transition border border-rose-500/20">
-                                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Supprimer
+                                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> {{ 'Delete' if current_lang == 'en' else 'Supprimer' }}
                                 </button>
                             </form>
                         </td>
@@ -124,10 +133,14 @@
                                 <div class="w-16 h-16 rounded-2xl bg-rose-500/10 text-rose-400 border border-rose-500/20 flex items-center justify-center shadow-inner">
                                     <i data-lucide="wallet" class="w-8 h-8"></i>
                                 </div>
-                                <h3 class="text-base font-bold text-slate-200">Aucune dépense enregistrée</h3>
-                                <p class="text-[13px] text-slate-300 max-w-sm">Suivez vos charges professionnelles en ajoutant votre première dépense.</p>
+                                <h3 class="text-base font-bold text-slate-200">
+                                    {{ 'No expenses recorded' if current_lang == 'en' else 'Aucune dépense enregistrée' }}
+                                </h3>
+                                <p class="text-[13px] text-slate-300 max-w-sm">
+                                    {{ 'Track your business expenses by adding your first expense.' if current_lang == 'en' else 'Suivez vos charges professionnelles en ajoutant votre première dépense.' }}
+                                </p>
                                 <button onclick="openModal('addDepenseModal')" class="btn-cyan-primary px-5 py-2.5 rounded-xl text-xs font-semibold mt-2">
-                                    Ajouter une dépense
+                                    {{ 'Add an expense' if current_lang == 'en' else 'Ajouter une dépense' }}
                                 </button>
                             </div>
                         </td>
@@ -138,67 +151,64 @@
         </div>
     </div>
 </div>
-
 <!-- MODALE AJOUT DÉPENSE -->
 <div id="addDepenseModal" class="fixed inset-0 bg-black/75 backdrop-blur-md hidden items-center justify-center z-50 p-4">
     <div class="glass-card p-6 rounded-2xl w-full max-w-md space-y-6 animate-fade-in-up border border-white/20 shadow-2xl">
         <div class="flex justify-between items-center border-b border-white/10 pb-4">
             <h3 class="text-base font-bold text-slate-100 flex items-center gap-2">
-                <i data-lucide="credit-card" class="w-5 h-5 text-rose-400"></i> Enregistrer une dépense
+                <i data-lucide="credit-card" class="w-5 h-5 text-rose-400"></i> {{ 'Record an expense' if current_lang == 'en' else 'Enregistrer une dépense' }}
             </h3>
             <button onclick="closeModal('addDepenseModal')" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
         </div>
         <form action="{{ url_for('ajouter_depense') }}" method="POST" class="space-y-4">
             <div class="floating-group">
                 <input type="text" name="description" required placeholder=" " class="floating-input text-[13px]">
-                <label class="floating-label">Description</label>
+                <label class="floating-label">{{ 'Description' if current_lang == 'en' else 'Description' }}</label>
             </div>
             <div class="floating-group">
                 <input type="text" name="categorie" required placeholder=" " class="floating-input text-[13px]">
-                <label class="floating-label">Catégorie (ex: Loyer, Salaires...)</label>
+                <label class="floating-label">{{ 'Category (e.g. Rent, Salaries...)' if current_lang == 'en' else 'Catégorie (ex: Loyer, Salaires...)' }}</label>
             </div>
             <div class="floating-group">
                 <input type="number" step="0.01" min="0" name="montant" required placeholder=" " class="floating-input text-[13px]">
-                <label class="floating-label">Montant</label>
+                <label class="floating-label">{{ 'Amount' if current_lang == 'en' else 'Montant' }}</label>
             </div>
             <div class="flex justify-end gap-3 pt-4 border-t border-white/10">
-                <button type="button" onclick="closeModal('addDepenseModal')" class="glass-card hover:bg-white/10 px-4 py-2.5 rounded-xl text-xs transition text-slate-300">Annuler</button>
-                <button type="submit" class="btn-cyan-primary px-5 py-2.5 rounded-xl text-xs font-semibold">Enregistrer</button>
+                <button type="button" onclick="closeModal('addDepenseModal')" class="glass-card hover:bg-white/10 px-4 py-2.5 rounded-xl text-xs transition text-slate-300">{{ 'Cancel' if current_lang == 'en' else 'Annuler' }}</button>
+                <button type="submit" class="btn-cyan-primary px-5 py-2.5 rounded-xl text-xs font-semibold">{{ 'Save' if current_lang == 'en' else 'Enregistrer' }}</button>
             </div>
         </form>
     </div>
 </div>
-
 <!-- MODALE MODIFIER DÉPENSE -->
 <div id="editDepenseModal" class="fixed inset-0 bg-black/75 backdrop-blur-md hidden items-center justify-center z-50 p-4">
     <div class="glass-card p-6 rounded-2xl w-full max-w-md space-y-6 animate-fade-in-up border border-white/20 shadow-2xl">
         <div class="flex justify-between items-center border-b border-white/10 pb-4">
             <h3 class="text-base font-bold text-slate-100 flex items-center gap-2">
-                <i data-lucide="edit-3" class="w-5 h-5 text-violet-400"></i> Modifier la dépense
+                <i data-lucide="edit-3" class="w-5 h-5 text-violet-400"></i> {{ 'Edit expense' if current_lang == 'en' else 'Modifier la dépense' }}
             </h3>
             <button onclick="closeModal('editDepenseModal')" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
         </div>
         <form id="editDepenseForm" method="POST" class="space-y-4">
             <div class="floating-group">
                 <input type="text" id="edit_description" name="description" required placeholder=" " class="floating-input text-[13px]">
-                <label class="floating-label">Description</label>
+                <label class="floating-label">{{ 'Description' if current_lang == 'en' else 'Description' }}</label>
             </div>
             <div class="floating-group">
                 <input type="text" id="edit_categorie" name="categorie" required placeholder=" " class="floating-input text-[13px]">
-                <label class="floating-label">Catégorie</label>
+                <label class="floating-label">{{ 'Category' if current_lang == 'en' else 'Catégorie' }}</label>
             </div>
             <div class="floating-group">
                 <input type="number" step="0.01" min="0" id="edit_montant" name="montant" required placeholder=" " class="floating-input text-[13px]">
-                <label class="floating-label">Montant</label>
+                <label class="floating-label">{{ 'Amount' if current_lang == 'en' else 'Montant' }}</label>
             </div>
             <div class="flex justify-end gap-3 pt-4 border-t border-white/10">
-                <button type="button" onclick="closeModal('editDepenseModal')" class="glass-card hover:bg-white/10 px-4 py-2.5 rounded-xl text-xs transition text-slate-300">Annuler</button>
-                <button type="submit" class="btn-cyan-primary px-5 py-2.5 rounded-xl text-xs font-semibold">Mettre à jour</button>
+                <button type="button" onclick="closeModal('editDepenseModal')" class="glass-card hover:bg-white/10 px-4 py-2.5 rounded-xl text-xs transition text-slate-300">{{ 'Cancel' if current_lang == 'en' else 'Annuler' }}</button>
+                <button type="submit" class="btn-cyan-primary px-5 py-2.5 rounded-xl text-xs font-semibold">{{ 'Update' if current_lang == 'en' else 'Mettre à jour' }}</button>
             </div>
         </form>
     </div>
 </div>
-
 <!-- MODALE DE CONFIRMATION EN VERRE POUR LA SUPPRESSION -->
 <div id="confirmDeleteModal" class="fixed inset-0 bg-black/75 backdrop-blur-md hidden items-center justify-center z-50 p-4">
     <div class="glass-card p-6 rounded-2xl w-full max-w-sm space-y-6 text-center animate-fade-in-up border border-white/20 shadow-2xl">
@@ -206,24 +216,25 @@
             <i data-lucide="alert-triangle" class="w-7 h-7"></i>
         </div>
         <div class="space-y-2">
-            <h3 class="text-base font-bold text-slate-100">Confirmer la suppression</h3>
-            <p id="confirmDeleteText" class="text-[13px] text-slate-300">Êtes-vous sûr de vouloir supprimer cet élément ?</p>
+            <h3 class="text-base font-bold text-slate-100">
+                {{ 'Confirm deletion' if current_lang == 'en' else 'Confirmer la suppression' }}
+            </h3>
+            <p id="confirmDeleteText" class="text-[13px] text-slate-300">
+                {{ 'Are you sure you want to delete this item?' if current_lang == 'en' else 'Êtes-vous sûr de vouloir supprimer cet élément ?' }}
+            </p>
         </div>
         <div class="flex justify-center gap-3 pt-2">
-            <button type="button" onclick="closeModal('confirmDeleteModal')" class="glass-card hover:bg-white/10 px-4 py-2.5 rounded-xl text-xs transition text-slate-300 w-full">Annuler</button>
-            <button type="button" id="confirmDeleteBtn" class="px-4 py-2.5 rounded-xl text-xs font-semibold bg-rose-500 hover:bg-rose-600 text-white transition w-full shadow-lg shadow-rose-500/30">Supprimer</button>
+            <button type="button" onclick="closeModal('confirmDeleteModal')" class="glass-card hover:bg-white/10 px-4 py-2.5 rounded-xl text-xs transition text-slate-300 w-full">{{ 'Cancel' if current_lang == 'en' else 'Annuler' }}</button>
+            <button type="button" id="confirmDeleteBtn" class="px-4 py-2.5 rounded-xl text-xs font-semibold bg-rose-500 hover:bg-rose-600 text-white transition w-full shadow-lg shadow-rose-500/30">{{ 'Delete' if current_lang == 'en' else 'Supprimer' }}</button>
         </div>
     </div>
 </div>
-
 <script>
     let formEnCoursDeSuppression = null;
-
     document.addEventListener('DOMContentLoaded', () => {
         if (typeof lucide !== 'undefined') lucide.createIcons();
         const activeDevise = document.getElementById('devise-select') ? document.getElementById('devise-select').value : 'Ar';
         mettreAJourDevises(activeDevise);
-
         // Gestionnaire d'événement pour les boutons modifier
         document.querySelectorAll('.btn-modifier').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -236,31 +247,29 @@
             });
         });
     });
-
     function demanderConfirmationSuppression(form, nomItem) {
         formEnCoursDeSuppression = form;
-        document.getElementById('confirmDeleteText').textContent = `Êtes-vous sûr de vouloir supprimer "${nomItem}" ? Cette action est irréversible.`;
+        const msg = APP.lang === 'en'
+            ? `Are you sure you want to delete "${nomItem}"? This action is irreversible.`
+            : `Êtes-vous sûr de vouloir supprimer "${nomItem}" ? Cette action est irréversible.`;
+        document.getElementById('confirmDeleteText').textContent = msg;
         openModal('confirmDeleteModal');
     }
-
     document.getElementById('confirmDeleteBtn').addEventListener('click', () => {
         if (formEnCoursDeSuppression) {
             formEnCoursDeSuppression.submit();
         }
     });
-
     function mettreAJourDevises(devise) {
         const elements = document.querySelectorAll('.montant-convertible');
         const symboles = document.querySelectorAll('.devise-symbole');
         const TAUX_AR = 5021.0;
         const TAUX_USD = 1.08;
-
         elements.forEach((el, index) => {
             let baseVal = parseFloat(el.dataset.base);
             if (!isNaN(baseVal)) {
                 let finalVal = baseVal;
                 let symboleTexte = '€';
-
                 if (devise === 'Ar') {
                     finalVal = baseVal * TAUX_AR;
                     symboleTexte = 'Ar';
@@ -273,7 +282,6 @@
                     symboleTexte = '€';
                     el.textContent = finalVal.toLocaleString('fr-FR', {minimumFractionDigits: 2, maximumFractionDigits: 2}).replace(/\u202f/g, ' ').replace(/\u00a0/g, ' ');
                 }
-
                 if (symboles[index]) {
                     symboles[index].textContent = symboleTexte;
                 }

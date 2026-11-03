@@ -4,7 +4,7 @@ import re
 from datetime import datetime, timedelta
 from functools import wraps
 from flask import (Flask, render_template, request, redirect, url_for,
-                   session, send_file, flash)
+                    session, send_file, flash)
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 import openpyxl
@@ -15,7 +15,6 @@ from forms import LoginForm, UserRegisterForm  # noqa: F401
 from services.database import Database
 
 app = Flask(__name__)
-# En production : définir la variable d'environnement SECRET_KEY (ne jamais garder la valeur par défaut)
 app.secret_key = os.environ.get('SECRET_KEY', 'une_cle_secrete_tres_robuste_par_defaut')
 app.permanent_session_lifetime = timedelta(minutes=30)
 db = Database()
@@ -44,20 +43,160 @@ def admin_required(f):
     return decorated_function
 
 # ----------------------------------------------------------------------
-# TRADUCTIONS (FR / EN)
+# TRADUCTIONS GLOBALES (FR / EN)
 # ----------------------------------------------------------------------
 TRADUCTIONS = {
     'fr': {
         'dashboard': 'Tableau de bord', 'ventes': 'Ventes', 'produits': 'Produits & Stock',
         'clients': 'Clients', 'depenses': 'Dépenses', 'rapports': 'Rapports',
         'parametres': 'Paramètres', 'logout': 'Déconnexion',
-        'entreprise': "Gestion d'entreprise", 'menu': 'Menu de navigation', 'connecté': 'En ligne'
+        'entreprise': "Gestion d'entreprise", 'menu': 'Menu de navigation', 'connecté': 'En ligne',
+        'dash_title': 'Tableau de Bord Financier',
+        'welcome': 'Bienvenue, Admin',
+        'overview': "Vue d'ensemble",
+        'overview_desc': "Activité, stocks et performances de votre entreprise.",
+        'new_sale': 'Nouvelle Vente',
+        'manage_stocks': 'Gérer les Stocks',
+        'turnover': "Chiffre d'Affaires",
+        'net_profit': 'Bénéfice Net',
+        'sales_count': 'Nombre de Ventes',
+        'low_stock_alerts': 'Alertes Stock Bas',
+        'turnover_evolution': "Évolution du chiffre d'affaires",
+        'expenses_by_cat': 'Dépenses par Catégorie',
+        'sales_management': 'Gestion des Ventes',
+        'sales_history': 'Historique des Ventes',
+        'sales_history_desc': 'Consultez vos transactions et téléchargez vos factures PDF.',
+        'filter_by_date': 'Filtrer par date',
+        'filter': 'Filtrer',
+        'sale_num': 'N° vente',
+        'client': 'Client',
+        'date': 'Date',
+        'total_amount': 'Montant total',
+        'actions': 'Actions',
+        'details': 'Détails',
+        'products_management': 'Gestion des Produits & Stocks',
+        'catalog_stocks': 'Catalogue & Stocks',
+        'catalog_stocks_desc': 'Gérez votre catalogue de produits, suivez les niveaux de stock et les prix unitaires.',
+        'add_product': 'Ajouter un Produit',
+        'total_products': 'Total Produits',
+        'total_stock_value': 'Valeur Totale du Stock',
+        'stockout_alerts': 'Alertes de Rupture',
+        'search_product': 'Rechercher un produit...',
+        'search': 'Rechercher',
+        'product': 'PRODUIT',
+        'unit_price': 'PRIX UNITAIRE',
+        'current_stock': 'STOCK ACTUEL',
+        'alert_threshold': "SEUIL D'ALERTE",
+        'edit': 'Modifier',
+        'delete': 'Supprimer',
+        'clients_management': 'Gestion des Clients',
+        'clients_directory': 'Répertoire des Clients',
+        'clients_directory_desc': 'Consultez et gérez vos clients et leurs coordonnées.',
+        'add_client': 'Ajouter un Client',
+        'active_clients': 'Clients Actifs',
+        'last_added': 'Dernier Ajout',
+        'search_client': 'Rechercher un client...',
+        'email': 'EMAIL',
+        'phone': 'TÉLÉPHONE',
+        'expenses_management': 'Gestion des Dépenses & Charges',
+        'expenses_tracking': 'Suivi des Dépenses',
+        'expenses_tracking_desc': 'Enregistrez et suivez les charges et dépenses opérationnelles de votre entreprise.',
+        'new_expense': 'Nouvelle Dépense',
+        'total_expenses': 'Total des Dépenses',
+        'key_indicators': 'Indicateurs Clés',
+        'description': 'DESCRIPTION',
+        'category': 'CATÉGORIE',
+        'amount': 'MONTANT',
+        'reports_management': 'Rapports Financiers & Bilans',
+        'monthly_reports': 'Rapports Mensuels & Bilans',
+        'monthly_reports_desc': 'Performances financières des 6 derniers mois, avec export Excel.',
+        'export_excel': 'Exporter en Excel (.xlsx)',
+        'net_margin': 'Marge nette',
+        'settings_management': "Configuration de l'entreprise",
+        'general_settings': 'Paramètres Généraux',
+        'company_name': "Nom de l'entreprise",
+        'default_currency': 'Devise par défaut',
+        'vat_rate': 'Taux de TVA (%)',
+        'exchange_rate': 'Taux de change : 1 € = ? Ariary',
+        'accent_color': "Couleur d'accentuation",
+        'company_logo': "Logo de l'entreprise",
+        'save_changes': 'Enregistrer les modifications'
     },
     'en': {
         'dashboard': 'Dashboard', 'ventes': 'Sales', 'produits': 'Products & Stock',
-        'clients': 'Clients', 'depenses': 'Expenses', 'rapports': 'Reports',
+        'clients': 'Clients', 'depenses': 'Expenses', 'reports': 'Reports',
         'parametres': 'Settings', 'logout': 'Logout',
-        'entreprise': 'Business Management', 'menu': 'Navigation Menu', 'connecté': 'Online'
+        'entreprise': 'Business Management', 'menu': 'Navigation Menu', 'connecté': 'Online',
+        'dash_title': 'Financial Dashboard',
+        'welcome': 'Welcome, Admin',
+        'overview': 'Overview',
+        'overview_desc': 'Your business activity, stock levels, and performance.',
+        'new_sale': 'New Sale',
+        'manage_stocks': 'Manage Stocks',
+        'turnover': 'Turnover',
+        'net_profit': 'Net Profit',
+        'sales_count': 'Sales Count',
+        'low_stock_alerts': 'Low Stock Alerts',
+        'turnover_evolution': 'Turnover Evolution',
+        'expenses_by_cat': 'Expenses by Category',
+        'sales_management': 'Sales Management',
+        'sales_history': 'Sales History',
+        'sales_history_desc': 'View your transactions and download PDF invoices.',
+        'filter_by_date': 'Filter by date',
+        'filter': 'Filter',
+        'sale_num': 'Sale ID',
+        'client': 'Client',
+        'date': 'Date',
+        'total_amount': 'Total Amount',
+        'actions': 'Actions',
+        'details': 'Details',
+        'products_management': 'Products & Stock Management',
+        'catalog_stocks': 'Catalog & Stocks',
+        'catalog_stocks_desc': 'Manage your product catalog, track stock levels and unit prices.',
+        'add_product': 'Add Product',
+        'total_products': 'Total Products',
+        'total_stock_value': 'Total Stock Value',
+        'stockout_alerts': 'Stockout Alerts',
+        'search_product': 'Search a product...',
+        'search': 'Search',
+        'product': 'PRODUCT',
+        'unit_price': 'UNIT PRICE',
+        'current_stock': 'CURRENT STOCK',
+        'alert_threshold': 'ALERT THRESHOLD',
+        'edit': 'Edit',
+        'delete': 'Delete',
+        'clients_management': 'Clients Management',
+        'clients_directory': 'Clients Directory',
+        'clients_directory_desc': 'View and manage your clients and their contact details.',
+        'add_client': 'Add Client',
+        'active_clients': 'Active Clients',
+        'last_added': 'Last Added',
+        'search_client': 'Search a client...',
+        'email': 'EMAIL',
+        'phone': 'PHONE',
+        'expenses_management': 'Expenses & Charges Management',
+        'expenses_tracking': 'Expenses Tracking',
+        'expenses_tracking_desc': 'Record and track your business operational costs and expenses.',
+        'new_expense': 'New Expense',
+        'total_expenses': 'Total Expenses',
+        'key_indicators': 'Key Indicators',
+        'description': 'DESCRIPTION',
+        'category': 'CATEGORY',
+        'amount': 'AMOUNT',
+        'reports_management': 'Financial Reports & Balances',
+        'monthly_reports': 'Monthly Reports & Balances',
+        'monthly_reports_desc': 'Financial performance of the last 6 months, with Excel export.',
+        'export_excel': 'Export to Excel (.xlsx)',
+        'net_margin': 'Net Margin',
+        'settings_management': 'Company Configuration',
+        'general_settings': 'General Settings',
+        'company_name': 'Company Name',
+        'default_currency': 'Default Currency',
+        'vat_rate': 'VAT Rate (%)',
+        'exchange_rate': 'Exchange rate: 1 € = ? Ariary',
+        'accent_color': 'Accent Color',
+        'company_logo': 'Company Logo',
+        'save_changes': 'Save Changes'
     }
 }
 
@@ -85,7 +224,7 @@ def valider_telephone(phone):
     return bool(re.match(REGEX_PHONE_MG, phone.strip().replace(" ", "")))
 
 # ----------------------------------------------------------------------
-# DEVISES
+# DEVISES & CONTEXTE GLOBAL
 # ----------------------------------------------------------------------
 def lire_parametres():
     with db.get_connection() as conn:
@@ -142,7 +281,7 @@ def changer_devise(devise):
     return redirect(request.referrer or url_for('dashboard'))
 
 # ----------------------------------------------------------------------
-# AUTHENTIFICATION (Admin @Drill401 & Compte Testeur)
+# AUTHENTIFICATION
 # ----------------------------------------------------------------------
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -156,7 +295,6 @@ def login():
         
         username_saisi = form.username.data.strip()
         password_saisi = form.password.data
-
         user = None
         if username_saisi == 'admin' and check_password_hash(generate_password_hash('@Drill401'), password_saisi):
             user = {'id': 1, 'username': 'admin', 'role': 'admin'}
@@ -164,7 +302,6 @@ def login():
             user = {'id': 2, 'username': 'testeur', 'role': 'user'}
         else:
             user = db.verifier_utilisateur(username_saisi, password_saisi)
-
         if user:
             session.pop('failed_attempts', None)
             session['user_id'] = user['id']
@@ -561,7 +698,7 @@ def ventes():
     return render_template('ventes.html', ventes=db.recuperer_ventes(date_filtre), date_filtre=date_filtre)
 
 # ----------------------------------------------------------------------
-# DÉPENSES
+# DÉPENSES (Avec route de modification ajoutée)
 # ----------------------------------------------------------------------
 @app.route('/depenses')
 @login_required
@@ -585,6 +722,27 @@ def ajouter_depense():
         flash('Dépense enregistrée avec succès.', 'success')
     else:
         flash('Veuillez remplir tous les champs avec un montant positif.', 'error')
+    return redirect(url_for('depenses'))
+
+@app.route('/depenses/modifier/<int:depense_id>', methods=['POST'])
+@login_required
+def modifier_depense(depense_id):
+    description = request.form.get('description', '').strip()
+    categorie = request.form.get('categorie', '').strip()
+    try:
+        montant = float(request.form.get('montant', 0))
+    except ValueError:
+        flash('Montant invalide.', 'error')
+        return redirect(url_for('depenses'))
+    if description and categorie and montant > 0:
+        with db.get_connection() as conn:
+            conn.execute('''
+                UPDATE depenses SET description = ?, categorie = ?, montant = ? WHERE id = ?
+            ''', (description, categorie, montant, depense_id))
+            conn.commit()
+        flash('Dépense modifiée avec succès.', 'success')
+    else:
+        flash('Veuillez remplir tous les champs correctement.', 'error')
     return redirect(url_for('depenses'))
 
 @app.route('/depenses/supprimer/<int:depense_id>', methods=['POST'])

@@ -1,21 +1,17 @@
 {% extends "base.html" %}
-{% block page_title %}Tableau de bord - Mini-ERP Pro{% endblock %}
-{% block header_title %}Tableau de Bord Financier{% endblock %}
-
+{% block page_title %}{{ t('dashboard') }} - Mini-ERP Pro{% endblock %}
+{% block header_title %}{{ t('dash_title') }}{% endblock %}
 {% block content %}
 <style>
-    /* Pastilles d'icônes : suivent la couleur d'accent choisie dans Paramètres */
     .chip { display:flex; align-items:center; justify-content:center; flex-shrink:0; border-radius:12px; border:1px solid transparent; }
     .chip-accent { color: var(--accent);  background: color-mix(in srgb, var(--accent) 18%, transparent);  border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
     .chip-violet { color: #c4b5fd;        background: rgba(139,92,246,.20);                                border-color: rgba(139,92,246,.40); }
     .chip-success{ color: var(--success); background: rgba(52,211,153,.16);                                border-color: rgba(52,211,153,.35); }
-    .chip-danger { color: var(--danger);  background: rgba(251,113,133,.16);                               border-color: rgba(251,113,133,.35); }
+    .chip-danger { color: var(--danger);  background: rgba(251,113,133,.16);                                border-color: rgba(251,113,133,.35); }
     .chip-warning{ color: var(--warning); background: rgba(245,158,11,.16);                                border-color: rgba(245,158,11,.35); }
-
     .stat-label { font-size: 13px; color: rgba(255,255,255,.80); font-weight: 500; }
     .stat-value { font-family: 'Plus Jakarta Sans','Inter',sans-serif; font-weight: 800; line-height: 1.1; color:#fff; font-size: clamp(1.5rem, 1.1rem + 1vw, 2.1rem); }
     .stat-note  { font-size: 13px; color: rgba(255,255,255,.70); }
-
     .badge { display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:600; padding:2px 8px; border-radius:9999px; border:1px solid transparent; }
     .badge.hidden { display: none; }
     .badge-up   { color: var(--success); background: rgba(52,211,153,.14);  border-color: rgba(52,211,153,.35); }
@@ -24,48 +20,38 @@
     .text-danger  { color: var(--danger) !important; }
     .text-success { color: var(--success) !important; }
     .badge-info { color: var(--accent);  background: color-mix(in srgb, var(--accent) 15%, transparent); border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
-
     .row-glass { background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.14); border-radius: 14px; transition: background .2s ease, transform .2s ease; }
     .row-glass:hover { background: rgba(255,255,255,.13); transform: translateX(3px); }
-
     .empty-state { background: rgba(255,255,255,.05); border: 1px dashed rgba(255,255,255,.22); border-radius: 14px; }
-
     .btn-glass { background: rgba(255,255,255,.10); border: 1px solid rgba(255,255,255,.26); color:#fff; transition: background .2s ease, transform .2s ease; }
     .btn-glass:hover { background: rgba(255,255,255,.20); transform: translateY(-2px); }
-
 </style>
-
 <div class="w-full space-y-6 animate-fade-in-up">
-
-    <!-- ========== Bandeau d'accueil ========== -->
+    <!-- Bandeau d'accueil -->
     <div class="glass-card p-5 md:p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 overflow-hidden">
         <div class="flex items-center gap-4">
             <div class="chip chip-accent w-12 h-12"><i data-lucide="layout-dashboard" class="w-6 h-6"></i></div>
             <div>
-                <h2 class="text-xl md:text-2xl font-bold text-white">Vue d'ensemble</h2>
-                <p class="text-[13px] text-white/75 mt-0.5">Activité, stocks et performances de votre entreprise.</p>
+                <h2 class="text-xl md:text-2xl font-bold text-white">{{ t('overview') }}</h2>
+                <p class="text-[13px] text-white/75 mt-0.5">{{ t('overview_desc') }}</p>
             </div>
         </div>
-
         <div class="flex items-center gap-3 flex-wrap">
             <a href="{{ url_for('nouvelle_vente') }}" class="btn-cyan-primary px-4 py-2.5 rounded-xl text-[13px] font-semibold flex items-center gap-2">
-                <i data-lucide="plus-circle" class="w-4 h-4"></i> Nouvelle Vente
+                <i data-lucide="plus-circle" class="w-4 h-4"></i> {{ t('new_sale') }}
             </a>
             <a href="{{ url_for('produits') }}" class="btn-glass px-4 py-2.5 rounded-xl text-[13px] font-semibold flex items-center gap-2">
-                <i data-lucide="package" class="w-4 h-4"></i> Gérer les Stocks
+                <i data-lucide="package" class="w-4 h-4"></i> {{ t('manage_stocks') }}
             </a>
         </div>
     </div>
-
-    <!-- ========== 4 cartes statistiques ========== -->
+    <!-- Cartes statistiques -->
     <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
-
-        <!-- Chiffre d'affaires -->
         <div class="glass-card glass-card-hover p-5">
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-3">
                     <div class="chip chip-accent w-10 h-10"><i data-lucide="banknote" class="w-5 h-5"></i></div>
-                    <span class="stat-label">Chiffre d'Affaires</span>
+                    <span class="stat-label">{{ t('turnover') }}</span>
                 </div>
             </div>
             <div class="mt-4">
@@ -74,107 +60,97 @@
                 </p>
                 <div class="flex items-center gap-2 mt-2 flex-wrap">
                     <span id="badge-ca" class="badge badge-up hidden"></span>
-                    <span class="stat-note">Total global des ventes</span>
+                    <span class="stat-note">{{ 'Total global sales' if current_lang == 'en' else 'Total global des ventes' }}</span>
                 </div>
             </div>
         </div>
-
-        <!-- Bénéfice net -->
         <div class="glass-card glass-card-hover p-5">
             <div class="flex items-center gap-3">
                 <div class="chip chip-success w-10 h-10"><i data-lucide="wallet" class="w-5 h-5"></i></div>
-                <span class="stat-label">Bénéfice Net</span>
+                <span class="stat-label">{{ t('net_profit') }}</span>
             </div>
             <div class="mt-4">
                 <p class="stat-value" style="color:var(--success);">
                     <span class="montant-compact" data-base="{{ stats.benefice }}">{{ "%.2f"|format(stats.benefice) }}</span>
                 </p>
-                <p class="stat-note mt-2">CA moins Dépenses</p>
+                <p class="stat-note mt-2">{{ 'Turnover minus Expenses' if current_lang == 'en' else 'CA moins Dépenses' }}</p>
             </div>
         </div>
-
-        <!-- Nombre de ventes -->
         <div class="glass-card glass-card-hover p-5">
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-3">
                     <div class="chip chip-violet w-10 h-10"><i data-lucide="shopping-bag" class="w-5 h-5"></i></div>
-                    <span class="stat-label">Nombre de Ventes</span>
+                    <span class="stat-label">{{ t('sales_count') }}</span>
                 </div>
-                <span class="badge badge-info">Actif</span>
+                <span class="badge badge-info">{{ 'Active' if current_lang == 'en' else 'Actif' }}</span>
             </div>
             <div class="mt-4">
                 <p class="stat-value">{{ stats.ventes_count }}</p>
-                <p class="stat-note mt-2">Transactions validées</p>
+                <p class="stat-note mt-2">{{ 'Validated transactions' if current_lang == 'en' else 'Transactions validées' }}</p>
             </div>
         </div>
-
-        <!-- Alertes stock bas -->
         <div class="glass-card glass-card-hover p-5">
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-3">
                     <div class="chip chip-danger w-10 h-10"><i data-lucide="alert-triangle" class="w-5 h-5"></i></div>
-                    <span class="stat-label">Alertes Stock Bas</span>
+                    <span class="stat-label">{{ t('low_stock_alerts') }}</span>
                 </div>
                 {% if stats.stock_bas_count and stats.stock_bas_count > 0 %}
-                    <span class="badge badge-down">Urgent</span>
+                    <span class="badge badge-down">{{ 'Urgent' if current_lang == 'en' else 'Urgent' }}</span>
                 {% else %}
                     <span class="badge badge-up">OK</span>
                 {% endif %}
             </div>
             <div class="mt-4">
                 <p class="stat-value {% if stats.stock_bas_count and stats.stock_bas_count > 0 %}text-danger{% else %}text-success{% endif %}">{{ stats.stock_bas_count }}</p>
-                <p class="stat-note mt-2">Sous le seuil critique</p>
+                <p class="stat-note mt-2">{{ 'Below critical threshold' if current_lang == 'en' else 'Sous le seuil critique' }}</p>
             </div>
         </div>
     </div>
-
-    <!-- ========== Graphiques ========== -->
+    <!-- Graphiques -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
-
-        <!-- Courbe du chiffre d'affaires -->
         <div class="glass-card p-5 md:p-6 lg:col-span-2">
             <div class="flex items-center justify-between mb-1">
                 <h3 class="text-base font-bold text-white flex items-center gap-2">
-                    <i data-lucide="trending-up" class="w-4 h-4" style="color:var(--accent);"></i> Évolution du chiffre d'affaires
+                    <i data-lucide="trending-up" class="w-4 h-4" style="color:var(--accent);"></i> {{ t('turnover_evolution') }}
                 </h3>
-                <span class="badge badge-info">6 derniers mois</span>
+                <span class="badge badge-info">{{ 'Last 6 months' if current_lang == 'en' else '6 derniers mois' }}</span>
             </div>
-            <p class="text-[13px] text-white/70 mb-4">Mis à jour aujourd'hui</p>
+            <p class="text-[13px] text-white/70 mb-4">{{ 'Updated today' if current_lang == 'en' else "Mis à jour aujourd'hui" }}</p>
             <div class="h-72 relative">
                 <canvas id="caChart"></canvas>
                 <div id="ca-empty" class="empty-state hidden absolute inset-0 flex-col items-center justify-center gap-2 text-center p-6">
                     <i data-lucide="bar-chart-3" class="w-8 h-8 text-white/60"></i>
-                    <p class="text-[13px] text-white/80">Pas encore de ventes à afficher.<br>Créez votre première vente pour voir la courbe.</p>
+                    <p class="text-[13px] text-white/80">
+                        {{ 'No sales to display yet. Create your first sale to see the curve.' if current_lang == 'en' else 'Pas encore de ventes à afficher.<br>Créez votre première vente pour voir la courbe.' }}
+                    </p>
                 </div>
             </div>
         </div>
-
-        <!-- Donut des dépenses -->
         <div class="glass-card p-5 md:p-6">
             <h3 class="text-base font-bold text-white flex items-center gap-2 mb-1">
-                <i data-lucide="pie-chart" class="w-4 h-4" style="color:var(--violet);"></i> Dépenses par Catégorie
+                <i data-lucide="pie-chart" class="w-4 h-4" style="color:var(--violet);"></i> {{ t('expenses_by_cat') }}
             </h3>
-            <p class="text-[13px] text-white/70 mb-4">Répartition des charges</p>
+            <p class="text-[13px] text-white/70 mb-4">{{ 'Expenses breakdown' if current_lang == 'en' else 'Répartition des charges' }}</p>
             <div class="h-72 relative">
                 <canvas id="depensesChart"></canvas>
                 <div id="dep-empty" class="empty-state hidden absolute inset-0 flex-col items-center justify-center gap-2 text-center p-6">
                     <i data-lucide="receipt" class="w-8 h-8 text-white/60"></i>
-                    <p class="text-[13px] text-white/80">Aucune dépense enregistrée.</p>
+                    <p class="text-[13px] text-white/80">{{ 'No expenses recorded.' if current_lang == 'en' else 'Aucune dépense enregistrée.' }}</p>
                 </div>
             </div>
         </div>
     </div>
-
-    <!-- ========== Listes ========== -->
+    <!-- Listes -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
-
-        <!-- Dernières ventes -->
         <div class="glass-card p-5 md:p-6">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-base font-bold text-white flex items-center gap-2">
-                    <i data-lucide="shopping-cart" class="w-4 h-4" style="color:var(--accent);"></i> Dernières Ventes
+                    <i data-lucide="shopping-cart" class="w-4 h-4" style="color:var(--accent);"></i> {{ t('sales_history') }}
                 </h3>
-                <a href="{{ url_for('ventes') }}" class="text-[13px] font-semibold hover:underline" style="color:var(--accent);">Voir tout →</a>
+                <a href="{{ url_for('ventes') }}" class="text-[13px] font-semibold hover:underline" style="color:var(--accent);">
+                    {{ 'View all' if current_lang == 'en' else 'Voir tout' }} →
+                </a>
             </div>
             <div class="space-y-3">
                 {% for v in ventes_recentes %}
@@ -182,7 +158,10 @@
                     <div class="flex items-center gap-3 min-w-0">
                         <span class="chip chip-accent w-10 h-10 text-[13px] font-bold">#{{ v.id }}</span>
                         <div class="min-w-0">
-                            <p class="text-sm font-bold text-white truncate">{{ (v.client_nom or 'Client comptoir')|capitalize }}</p>
+                            <p class="text-sm font-bold text-white truncate">
+                                {% set nom_client = v.client_nom or ('Walk-in client' if current_lang == 'en' else 'Client comptoir') %}
+                                {{ nom_client|capitalize }}
+                            </p>
                             <p class="text-[13px] text-white/70">{{ v.date }}</p>
                         </div>
                     </div>
@@ -194,19 +173,20 @@
                 {% else %}
                 <div class="empty-state p-6 flex flex-col items-center gap-2 text-center">
                     <i data-lucide="shopping-cart" class="w-8 h-8 text-white/60"></i>
-                    <p class="text-[13px] text-white/80">Aucune vente récente.</p>
+                    <p class="text-[13px] text-white/80">{{ 'No recent sales.' if current_lang == 'en' else 'Aucune vente récente.' }}</p>
                 </div>
                 {% endfor %}
             </div>
         </div>
-
-        <!-- Produits à réapprovisionner -->
         <div class="glass-card p-5 md:p-6">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-base font-bold text-white flex items-center gap-2">
-                    <i data-lucide="alert-triangle" class="w-4 h-4" style="color:var(--warning);"></i> Produits à Réapprovisionner
+                    <i data-lucide="alert-triangle" class="w-4 h-4" style="color:var(--warning);"></i> 
+                    {{ 'Products to Restock' if current_lang == 'en' else 'Produits à Réapprovisionner' }}
                 </h3>
-                <a href="{{ url_for('produits') }}" class="text-[13px] font-semibold hover:underline" style="color:var(--accent);">Gérer le stock →</a>
+                <a href="{{ url_for('produits') }}" class="text-[13px] font-semibold hover:underline" style="color:var(--accent);">
+                    {{ t('manage_stocks') }} →
+                </a>
             </div>
             <div class="space-y-3">
                 {% if produits_reappro %}
@@ -216,35 +196,41 @@
                             <span class="chip chip-warning w-10 h-10"><i data-lucide="box" class="w-5 h-5"></i></span>
                             <div class="min-w-0">
                                 <p class="text-sm font-bold text-white truncate">{{ p.nom|capitalize }}</p>
-                                <p class="text-[13px] text-white/70">Seuil d'alerte : {{ p.seuil_alerte }}</p>
+                                <p class="text-[13px] text-white/70">
+                                    {{ 'Alert threshold' if current_lang == 'en' else "Seuil d'alerte" }} : {{ p.seuil_alerte }}
+                                </p>
                             </div>
                         </div>
-                        <span class="badge {% if p.stock == 0 %}badge-down{% else %}badge-warn{% endif %} whitespace-nowrap">Stock : {{ p.stock }}</span>
+                        <span class="badge {% if p.stock == 0 %}badge-down{% else %}badge-warn{% endif %} whitespace-nowrap">
+                            {% if p.stock == 0 %}
+                                {{ 'Stockout' if current_lang == 'en' else 'Rupture' }}
+                            {% else %}
+                                Stock : {{ p.stock }}
+                            {% endif %}
+                        </span>
                     </div>
                     {% endfor %}
                 {% else %}
                 <div class="empty-state p-6 flex flex-col items-center gap-2 text-center">
                     <i data-lucide="check-circle-2" class="w-8 h-8" style="color:var(--success);"></i>
-                    <p class="text-[13px] text-white/85">Tous les stocks sont à un niveau optimal.</p>
+                    <p class="text-[13px] text-white/85">
+                        {{ 'All stock levels are optimal.' if current_lang == 'en' else 'Tous les stocks sont à un niveau optimal.' }}
+                    </p>
                 </div>
                 {% endif %}
             </div>
         </div>
     </div>
 </div>
-
 <!-- Données pour les graphiques -->
 <script id="chart-data-ca-labels" type="application/json">{{ chart_ca.labels | tojson }}</script>
 <script id="chart-data-ca-values" type="application/json">{{ chart_ca.data | tojson }}</script>
 <script id="chart-data-dep-labels" type="application/json">{{ chart_depenses.labels | tojson }}</script>
 <script id="chart-data-dep-values" type="application/json">{{ chart_depenses.data | tojson }}</script>
-
 <script>
-    // APP (devise, taux, formats) et Chart.js sont fournis par base.html.
     const PALETTE_DONUT = ['#22b8f0', '#a855f7', '#f59e0b', '#34d399', '#fb7185', '#3b82f6', '#ec4899', '#facc15'];
     let caChart = null;
     let depChart = null;
-
     document.addEventListener('DOMContentLoaded', function () {
         APP.appliquerMontants();
         calculerVariationCA();
@@ -252,16 +238,12 @@
         dessinerDonutDepenses();
         if (typeof lucide !== 'undefined') lucide.createIcons();
     });
-
     function lireJson(id) { return JSON.parse(document.getElementById(id).textContent); }
-
     function afficherVide(canvas, vide, estVide) {
         canvas.classList.toggle('hidden', estVide);
         vide.classList.toggle('hidden', !estVide);
         vide.classList.toggle('flex', estVide);
     }
-
-    // Variation du CA : dernier mois contre le mois précédent (calculée, jamais écrite en dur)
     function calculerVariationCA() {
         const valeurs = lireJson('chart-data-ca-values');
         const badge = document.getElementById('badge-ca');
@@ -274,30 +256,26 @@
         badge.classList.add(positif ? 'badge-up' : 'badge-down');
         badge.textContent = (positif ? '▲ +' : '▼ ') + pct.toFixed(1).replace('.', ',') + ' %';
     }
-
     function dessinerCourbeCA() {
         const labels = lireJson('chart-data-ca-labels');
         const base = lireJson('chart-data-ca-values');
         const canvas = document.getElementById('caChart');
         const vide = document.getElementById('ca-empty');
         if (caChart) { caChart.destroy(); caChart = null; }
-
         const estVide = !base.length || base.every(function (v) { return !v; });
         afficherVide(canvas, vide, estVide);
         if (estVide) return;
-
         const accent = APP.couleur('--accent', '#8b5cf6');
         const ctx = canvas.getContext('2d');
         const degrade = ctx.createLinearGradient(0, 0, 0, 300);
         degrade.addColorStop(0, APP.hexToRgba(accent, 0.45));
         degrade.addColorStop(1, APP.hexToRgba(accent, 0));
-
         caChart = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: labels,
                 datasets: [{
-                    label: "Chiffre d'affaires",
+                    label: APP.lang === 'en' ? 'Turnover' : "Chiffre d'affaires",
                     data: base.map(APP.convertir),
                     borderColor: accent, backgroundColor: degrade, fill: true,
                     tension: 0.4, borderWidth: 3,
@@ -326,18 +304,15 @@
             }
         });
     }
-
     function dessinerDonutDepenses() {
         const labels = lireJson('chart-data-dep-labels');
         const valeurs = lireJson('chart-data-dep-values');
         const canvas = document.getElementById('depensesChart');
         const vide = document.getElementById('dep-empty');
         if (depChart) { depChart.destroy(); depChart = null; }
-
         const estVide = !valeurs.length || valeurs.every(function (v) { return !v; });
         afficherVide(canvas, vide, estVide);
         if (estVide) return;
-
         depChart = new Chart(canvas.getContext('2d'), {
             type: 'doughnut',
             data: {
