@@ -45,6 +45,7 @@
             </a>
         </div>
     </div>
+
     <!-- Cartes statistiques -->
     <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
         <div class="glass-card glass-card-hover p-5">
@@ -107,6 +108,60 @@
             </div>
         </div>
     </div>
+
+    <!-- Section Suivi des Testeurs (Réservée exclusivement à l'Admin) -->
+    {% if session.get('role') == 'admin' %}
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <div class="glass-card p-5">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="chip chip-violet w-10 h-10"><i data-lucide="user-check" class="w-5 h-5"></i></div>
+                    <span class="stat-label">{{ t('testers_active') }}</span>
+                </div>
+                <span class="badge badge-info">Online</span>
+            </div>
+            <div class="mt-4">
+                <p class="stat-value">{{ testeurs_count }}</p>
+                <p class="stat-note mt-2">{{ 'Registered test accounts' if current_lang == 'en' else 'Comptes de test enregistrés' }}</p>
+            </div>
+        </div>
+        <div class="glass-card p-5 md:p-6 lg:col-span-2">
+            <h3 class="text-base font-bold text-white flex items-center gap-2 mb-3">
+                <i data-lucide="shield-alert" class="w-4 h-4" style="color:var(--accent);"></i> 
+                {{ t('test_accounts_directory') }}
+            </h3>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-white/10 text-xs uppercase tracking-wider text-slate-400">
+                            <th class="p-3">{{ 'User' if current_lang == 'en' else 'Utilisateur' }}</th>
+                            <th class="p-3">{{ 'Role' if current_lang == 'en' else 'Rôle' }}</th>
+                            <th class="p-3 text-right">{{ 'Status' if current_lang == 'en' else 'Statut' }}</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-white/5 text-sm">
+                        {% for testeur in testeurs_liste %}
+                        <tr class="hover:bg-violet-500/5 transition">
+                            <td class="p-3 font-semibold text-white">{{ testeur.username or testeur.nom or 'testeur' }}</td>
+                            <td class="p-3 text-white/70">{{ testeur.role or 'Testeur' }}</td>
+                            <td class="p-3 text-right">
+                                <span class="badge badge-up">{{ 'Active' if current_lang == 'en' else 'Actif' }}</span>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="3" class="p-4 text-center text-white/60 text-[13px]">
+                                {{ t('no_testers') }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Graphiques -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <div class="glass-card p-5 md:p-6 lg:col-span-2">
@@ -141,6 +196,7 @@
             </div>
         </div>
     </div>
+
     <!-- Listes -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <div class="glass-card p-5 md:p-6">
@@ -222,6 +278,7 @@
         </div>
     </div>
 </div>
+
 <!-- Données pour les graphiques -->
 <script id="chart-data-ca-labels" type="application/json">{{ chart_ca.labels | tojson }}</script>
 <script id="chart-data-ca-values" type="application/json">{{ chart_ca.data | tojson }}</script>

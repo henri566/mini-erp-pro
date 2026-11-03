@@ -2,7 +2,6 @@ import sqlite3
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 
-
 class Database:
     def __init__(self, db_name="erp.db"):
         self.db_name = db_name
@@ -56,7 +55,6 @@ class Database:
             self._ajouter_colonne_si_absente(conn, 'parametres', 'taux_ar', 'REAL DEFAULT 5021.0')
             self._ajouter_colonne_si_absente(conn, 'parametres', 'logo', 'TEXT')
             conn.execute("UPDATE parametres SET taux_ar = 5021.0 WHERE taux_ar IS NULL")
-
             conn.execute('''
                 CREATE TABLE IF NOT EXISTS clients (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -104,7 +102,6 @@ class Database:
                     date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             ''')
-
             if not conn.execute("SELECT 1 FROM utilisateurs WHERE username = ?", ('admin',)).fetchone():
                 conn.execute(
                     "INSERT INTO utilisateurs (username, password, role) VALUES (?, ?, 'admin')",
@@ -115,6 +112,18 @@ class Database:
                     INSERT INTO parametres (nom_entreprise, devise_defaut, tva, couleur_accent, taux_ar)
                     VALUES (?, ?, ?, ?, ?)
                 ''', ('Mini-ERP Pro', 'Ar', 20.0, '#8B5CF6', 5021.0))
+            conn.commit()
+
+    # ------------------------------------------------------------------
+    # RÉINITIALISATION DES DONNÉES DE TEST
+    # ------------------------------------------------------------------
+    def reinitialiser_donnees_test(self):
+        """Réinitialise les ventes, dépenses et remet les stocks à un niveau propre."""
+        with self.get_connection() as conn:
+            conn.execute("DELETE FROM ventes")
+            conn.execute("DELETE FROM lignes_vente")
+            conn.execute("DELETE FROM depenses")
+            conn.execute("UPDATE produits SET stock = 10")
             conn.commit()
 
     # ------------------------------------------------------------------
@@ -234,8 +243,7 @@ class Database:
             ).fetchall()
 
     def creer_vente(self, client_id, lignes):
-        """Crée la vente, ses lignes et baisse le stock dans UNE transaction.
-        Si un stock est insuffisant, tout est annulé."""
+        """Crée la vente, ses lignes et baisse le stock dans UNE transaction."""
         with self.get_connection() as conn:
             total_vente = sum(l['quantite'] * l['prix_unitaire'] for l in lignes)
             cursor = conn.cursor()
@@ -274,7 +282,6 @@ class Database:
             conn.commit()
 
     def recuperer_depenses_par_categorie(self):
-        """Regroupe 'charge', 'Charge ' et 'CHARGE' dans la même catégorie."""
         with self.get_connection() as conn:
             return conn.execute('''
                 SELECT LOWER(TRIM(categorie)) AS categorie, SUM(montant) AS total
@@ -284,7 +291,7 @@ class Database:
             ''').fetchall()
 
     # ------------------------------------------------------------------
-    # RAPPORT MENSUEL (6 derniers mois RÉELS, les mois vides valent 0)
+    # RAPPORT MENSUEL
     # ------------------------------------------------------------------
     @staticmethod
     def _derniers_mois(nb_mois):
@@ -296,12 +303,11 @@ class Database:
             mois -= 1
             if mois == 0:
                 mois, annee = 12, annee - 1
-        return list(reversed(liste))  # ordre chronologique
+        return list(reversed(liste))
 
     def recuperer_rapport_mensuel(self, nb_mois=6):
         mois_liste = self._derniers_mois(nb_mois)
         data = {m: {'mois': m, 'ca': 0.0, 'nb_ventes': 0, 'depenses': 0.0, 'benefice': 0.0} for m in mois_liste}
-
         with self.get_connection() as conn:
             for v in conn.execute('''
                 SELECT strftime('%Y-%m', date) AS mois, SUM(total) AS ca, COUNT(*) AS nb_ventes
@@ -316,7 +322,6 @@ class Database:
             ''').fetchall():
                 if d['mois'] in data:
                     data[d['mois']]['depenses'] = d['depenses'] or 0.0
-
         for m in data.values():
             m['benefice'] = m['ca'] - m['depenses']
         return [data[m] for m in mois_liste]

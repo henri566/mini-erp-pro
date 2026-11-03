@@ -4,7 +4,7 @@ import re
 from datetime import datetime, timedelta
 from functools import wraps
 from flask import (Flask, render_template, request, redirect, url_for,
-                    session, send_file, flash)
+                   session, send_file, flash)
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 import openpyxl
@@ -120,7 +120,10 @@ TRADUCTIONS = {
         'exchange_rate': 'Taux de change : 1 € = ? Ariary',
         'accent_color': "Couleur d'accentuation",
         'company_logo': "Logo de l'entreprise",
-        'save_changes': 'Enregistrer les modifications'
+        'save_changes': 'Enregistrer les modifications',
+        'testers_active': 'Testeurs Actifs',
+        'test_accounts_directory': 'Annuaire des Comptes Testeurs',
+        'no_testers': 'Aucun testeur enregistré.'
     },
     'en': {
         'dashboard': 'Dashboard', 'ventes': 'Sales', 'produits': 'Products & Stock',
@@ -196,7 +199,10 @@ TRADUCTIONS = {
         'exchange_rate': 'Exchange rate: 1 € = ? Ariary',
         'accent_color': 'Accent Color',
         'company_logo': 'Company Logo',
-        'save_changes': 'Save Changes'
+        'save_changes': 'Save Changes',
+        'testers_active': 'Active Testers',
+        'test_accounts_directory': 'Test Accounts Directory',
+        'no_testers': 'No active testers.'
     }
 }
 
@@ -302,11 +308,21 @@ def login():
             user = {'id': 2, 'username': 'testeur', 'role': 'user'}
         else:
             user = db.verifier_utilisateur(username_saisi, password_saisi)
+            
         if user:
             session.pop('failed_attempts', None)
             session['user_id'] = user['id']
             session['username'] = user['username']
             session['role'] = user['role']
+            
+            # --- NETTOYAGE AUTOMATIQUE POUR LE COMPTE TESTEUR PAR IP ---
+            if user['username'] == 'testeur':
+                ip_actuelle = request.remote_addr
+                if session.get('derniere_ip_testeur') != ip_actuelle:
+                    session['derniere_ip_testeur'] = ip_actuelle
+                    db.reinitialiser_donnees_test()
+            # -----------------------------------------------------------
+            
             flash('Connexion réussie !', 'success')
             return redirect(url_for('dashboard'))
             
@@ -325,7 +341,7 @@ def logout():
     return redirect(url_for('login'))
 
 # ----------------------------------------------------------------------
-# TABLEAU DE BORD
+# TABLEAU DE BORD (AVEC SUIVI DES TESTEURS)
 # ----------------------------------------------------------------------
 @app.route('/')
 @app.route('/dashboard')
@@ -337,6 +353,14 @@ def dashboard():
         ventes_count = conn.execute("SELECT COUNT(*) FROM ventes").fetchone()[0] or 0
         stock_critique_count = conn.execute("SELECT COUNT(*) FROM produits WHERE stock = 0").fetchone()[0] or 0
         stock_alertes = conn.execute("SELECT COUNT(*) FROM produits WHERE stock <= seuil_alerte").fetchone()[0] or 0
+        
+        try:
+            testeurs_liste = conn.execute("SELECT * FROM utilisateurs WHERE role != 'admin'").fetchall()
+            testeurs_count = len(testeurs_liste)
+        except Exception:
+            testeurs_liste = [{'id': 2, 'username': 'testeur', 'role': 'user'}]
+            testeurs_count = len(testeurs_liste)
+            
     stats = {
         'ca': ca_total,
         'benefice': ca_total - depenses_total,
@@ -357,7 +381,9 @@ def dashboard():
                            chart_ca=chart_ca,
                            chart_depenses=chart_depenses,
                            ventes_recentes=db.recuperer_ventes_recentes(5),
-                           produits_reappro=db.recuperer_produits_a_reapprovisionner()[:5])
+                           produits_reappro=db.recuperer_produits_a_reapprovisionner()[:5],
+                           testeurs_count=testeurs_count,
+                           testeurs_liste=testeurs_liste)
 
 # ----------------------------------------------------------------------
 # PARAMÈTRES
@@ -410,6 +436,14 @@ def parametres():
     param = conn.execute('SELECT * FROM parametres WHERE id = 1').fetchone()
     conn.close()
     return render_template('parametres.html', param=param)
+
+@app.route('/parametres/reinitialiser-test', methods=['POST'])
+@login_required
+@admin_required
+def reinitialiser_test():
+    db.reinitialiser_donnees_test()
+    flash('Les données de test ont été réinitialisées avec succès.', 'success')
+    return redirect(url_for('parametres'))
 
 # ----------------------------------------------------------------------
 # CLIENTS
@@ -698,7 +732,7 @@ def ventes():
     return render_template('ventes.html', ventes=db.recuperer_ventes(date_filtre), date_filtre=date_filtre)
 
 # ----------------------------------------------------------------------
-# DÉPENSES (Avec route de modification ajoutée)
+# DÉPENSES
 # ----------------------------------------------------------------------
 @app.route('/depenses')
 @login_required
